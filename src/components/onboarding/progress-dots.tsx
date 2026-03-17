@@ -5,16 +5,20 @@ type ProgressDotsProps = {
 
 export function ProgressDots({ total, current }: ProgressDotsProps) {
   return (
-    <div className="flex items-center gap-2" aria-label={`Step ${current} of ${total}`}>
+    <div
+      className="flex items-center gap-2"
+      aria-label={`Step ${current} of ${total}`}
+    >
       {Array.from({ length: total }).map((_, index) => {
-        const active = index + 1 === current;
-        const complete = index + 1 < current;
+        const step = index + 1;
+        const active = step === current;
+        const complete = step < current;
 
         return (
           <span
-            key={index}
+            key={step}
             className={[
-              "h-2 rounded-full transition-all",
+              "h-2 rounded-full transition-all duration-200",
               active
                 ? "w-8 bg-white"
                 : complete

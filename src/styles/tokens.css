@@ -1,0 +1,98 @@
+:root {
+  --color-bg-primary: #050816;
+  --color-bg-secondary: #0b0f1f;
+  --color-bg-tertiary: #0f1428;
+
+  --color-surface-glass: rgba(20, 24, 45, 0.62);
+  --color-surface-input: rgba(255, 255, 255, 0.03);
+
+  --color-border-soft: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+
+  --color-text-primary: #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.68);
+  --color-text-muted: rgba(255, 255, 255, 0.45);
+
+  --color-accent-primary: #3a6dff;
+  --color-accent-secondary: #735cff;
+  --color-accent-glow: rgba(58, 109, 255, 0.28);
+
+  --color-success: #3ddc97;
+  --color-danger: #ff5c7a;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  --glass-blur: blur(18px);
+
+  --shadow-soft: 0 16px 60px rgba(0, 0, 0, 0.32);
+  --shadow-glow: 0 0 40px rgba(58, 109, 255, 0.12);
+
+  --motion-fast: 120ms;
+  --motion-normal: 220ms;
+  --motion-slow: 420ms;
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --gradient-lighting:
+    radial-gradient(circle at 50% 0%, rgba(58, 109, 255, 0.24), transparent 34%),
+    radial-gradient(circle at 88% 12%, rgba(115, 92, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 15% 85%, rgba(58, 109, 255, 0.1), transparent 24%);
+
+  --gradient-grid:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+
+  --grid-size: 72px;
+}
+
+.skuully-cinematic-bg {
+  background:
+    var(--gradient-lighting),
+    var(--gradient-grid),
+    var(--color-bg-primary);
+  background-size:
+    auto,
+    var(--grid-size) var(--grid-size),
+    auto;
+  background-position:
+    center,
+    center,
+    center;
+}
+
+.skuully-glass-card {
+  background: var(--color-surface-glass);
+  border: 1px solid var(--color-border-soft);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-soft), var(--shadow-glow);
+}
+
+.skuully-solid-panel {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+.skuully-focus-ring {
+  transition: border-color var(--motion-normal) var(--ease-smooth),
+    box-shadow var(--motion-normal) var(--ease-smooth),
+    background-color var(--motion-normal) var(--ease-smooth);
+}
+
+.skuully-focus-ring:focus-visible {
+  outline: none;
+  border-color: rgba(58, 109, 255, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(58, 109, 255, 0.4),
+    0 0 0 6px rgba(58, 109, 255, 0.08);
+}

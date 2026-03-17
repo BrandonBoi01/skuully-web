@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Building2,
   ArrowRight,
-  Network,
-  UserCircle2,
-  GraduationCap,
-  Users,
   Briefcase,
+  Building2,
+  GraduationCap,
+  Network,
   School,
+  UserCircle2,
   UserRoundCheck,
+  Users,
 } from "lucide-react";
 
 import { getMe } from "@/lib/auth";
@@ -19,20 +19,16 @@ import {
   clearOnboardingState,
   readOnboardingState,
   writeOnboardingState,
-  type OnboardingRoute,
   type BuildInstitutionType,
   type JoinRole,
+  type OnboardingRoute,
   type PersonalStart,
 } from "@/lib/onboarding-flow";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
-import { QuestionStep } from "@/components/onboarding/question-step";
 import { ChoiceCard } from "@/components/onboarding/choice-card";
+import { QuestionStep } from "@/components/onboarding/question-step";
 
-type StepKey =
-  | "route"
-  | "build_type"
-  | "join_role"
-  | "personal_start";
+type StepKey = "route" | "build_type" | "join_role" | "personal_start";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -110,6 +106,26 @@ export default function OnboardingPage() {
     return 2;
   }, [currentStep]);
 
+  const title = useMemo(() => {
+    if (currentStep === "route") return "What brings you to Skuully?";
+    if (currentStep === "build_type") return "What are you building?";
+    if (currentStep === "join_role") return "How are you joining?";
+    return "What do you want to begin with?";
+  }, [currentStep]);
+
+  const subtitle = useMemo(() => {
+    if (currentStep === "route") {
+      return "Choose the path that fits today. You can expand later.";
+    }
+    if (currentStep === "build_type") {
+      return "Pick the institution type that matches your starting point.";
+    }
+    if (currentStep === "join_role") {
+      return "We’ll shape the next step around your role.";
+    }
+    return "Start where you are. Grow when you’re ready.";
+  }, [currentStep]);
+
   const canContinue = useMemo(() => {
     if (currentStep === "route") return !!route;
     if (currentStep === "build_type") return !!buildType;
@@ -141,7 +157,6 @@ export default function OnboardingPage() {
 
       if (route === "start_as_me") {
         setCurrentStep("personal_start");
-        return;
       }
 
       return;
@@ -173,8 +188,8 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050816] text-white">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-5 text-sm text-white/65 backdrop-blur-xl">
+      <div className="skuully-cinematic-bg flex min-h-screen items-center justify-center text-white">
+        <div className="skuully-glass-card rounded-[28px] px-6 py-5 text-sm text-white/65">
           Opening onboarding...
         </div>
       </div>
@@ -185,7 +200,8 @@ export default function OnboardingPage() {
     <OnboardingShell
       step={currentStepNumber}
       totalSteps={totalSteps}
-      onBackHref={undefined}
+      title={title}
+      subtitle={subtitle}
       footer={
         <div className="flex flex-wrap items-center justify-between gap-4">
           <button
@@ -220,11 +236,8 @@ export default function OnboardingPage() {
         </div>
       }
     >
-      {currentStep === "route" ? (
-        <QuestionStep
-          title="What brings you to Skuully?"
-          helper="Choose the path that fits today. You can expand later."
-        >
+      <QuestionStep>
+        {currentStep === "route" ? (
           <div className="grid gap-4 md:grid-cols-3">
             <ChoiceCard
               title="Build an institution"
@@ -250,14 +263,9 @@ export default function OnboardingPage() {
               onClick={() => setRoute("start_as_me")}
             />
           </div>
-        </QuestionStep>
-      ) : null}
+        ) : null}
 
-      {currentStep === "build_type" ? (
-        <QuestionStep
-          title="What are you building?"
-          helper="Pick the institution type that matches your starting point."
-        >
+        {currentStep === "build_type" ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <ChoiceCard
               title="School"
@@ -302,14 +310,9 @@ export default function OnboardingPage() {
               onClick={() => setBuildType("academy")}
             />
           </div>
-        </QuestionStep>
-      ) : null}
+        ) : null}
 
-      {currentStep === "join_role" ? (
-        <QuestionStep
-          title="How are you joining?"
-          helper="We’ll shape the next step around your role."
-        >
+        {currentStep === "join_role" ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <ChoiceCard
               title="I have an invite"
@@ -347,14 +350,9 @@ export default function OnboardingPage() {
               onClick={() => setJoinRole("staff")}
             />
           </div>
-        </QuestionStep>
-      ) : null}
+        ) : null}
 
-      {currentStep === "personal_start" ? (
-        <QuestionStep
-          title="What do you want to begin with?"
-          helper="Start where you are. Grow when you’re ready."
-        >
+        {currentStep === "personal_start" ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <ChoiceCard
               title="My profile"
@@ -385,8 +383,8 @@ export default function OnboardingPage() {
               onClick={() => setPersonalStart("marketplace")}
             />
           </div>
-        </QuestionStep>
-      ) : null}
+        ) : null}
+      </QuestionStep>
     </OnboardingShell>
   );
 }
