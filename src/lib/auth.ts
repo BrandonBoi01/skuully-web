@@ -23,7 +23,7 @@ type RegisterResponse = {
   };
 };
 
-type MeResponse = {
+export type MeResponse = {
   id: string;
   fullName: string;
   email: string;
@@ -124,20 +124,29 @@ export function clearPendingResetEmail() {
   localStorage.removeItem("pendingResetEmail");
 }
 
+function getCsrfTokenFromCookie() {
+  if (typeof document === "undefined") return null;
+
+  const cookie = document.cookie
+    .split("; ")
+    .find((item) => item.startsWith("skuully_csrf_token="));
+
+  if (!cookie) return null;
+
+  return decodeURIComponent(cookie.split("=")[1]);
+}
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const method = (init?.method || "GET").toUpperCase();
-  const csrfToken =
-    typeof document !== "undefined"
-      ? document.cookie
-          .split("; ")
-          .find((item) => item.startsWith("skuully_csrf_token="))
-          ?.split("=")[1]
-      : null;
+  const csrfToken = getCsrfTokenFromCookie();
 
   const headers: HeadersInit = {
     ...(init?.headers ?? {}),
-    ...(method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && csrfToken
-      ? { "X-CSRF-Token": decodeURIComponent(csrfToken) }
+    ...(method !== "GET" &&
+    method !== "HEAD" &&
+    method !== "OPTIONS" &&
+    csrfToken
+      ? { "X-CSRF-Token": csrfToken }
       : {}),
   };
 
@@ -150,7 +159,19 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const text = await res.text();
 
   if (!res.ok) {
-    throw new Error(text || "Request failed");
+    let message = "Request failed";
+
+    try {
+      const parsed = text ? JSON.parse(text) : null;
+      message =
+        Array.isArray(parsed?.message)
+          ? parsed.message[0]
+          : parsed?.message || text || message;
+    } catch {
+      message = text || message;
+    }
+
+    throw new Error(message);
   }
 
   return text ? (JSON.parse(text) as T) : ({} as T);
@@ -228,8 +249,14 @@ export async function logoutSession() {
   });
 }
 
-export async function getMe() {
-  return fetchJson<MeResponse>(`${API_URL}/auth/me`);
+export async function getMe(): Promise<MeResponse | null> {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    credentials: "include",
+  });
+
+  if (!res.ok) return null;
+
+  return (await res.json()) as MeResponse;
 }
 
 export async function finalizeLoginSession() {

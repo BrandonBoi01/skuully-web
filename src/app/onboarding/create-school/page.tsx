@@ -15,7 +15,8 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-import { getMeWithToken, getStoredToken } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
+import { getMe } from "@/lib/auth";
 
 type MeResponse = {
   id: string;
@@ -42,139 +43,49 @@ type InstitutionType =
   | "ACADEMY"
   | "OTHER";
 
+type CreateSchoolResponse = {
+  message: string;
+  school?: {
+    id: string;
+    name: string;
+    country: string;
+  };
+  active?: {
+    school?: {
+      id: string;
+      name: string;
+    };
+    role?: string;
+  };
+  program?: {
+    id: string;
+    name: string;
+  };
+};
+
 const COUNTRIES: CountryOption[] = [
-  {
-    code: "KE",
-    name: "Kenya",
-    curriculum: "CBC",
-    note: "Competency Based Curriculum",
-  },
-  {
-    code: "UG",
-    name: "Uganda",
-    curriculum: "Uganda National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "TZ",
-    name: "Tanzania",
-    curriculum: "Tanzania National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "RW",
-    name: "Rwanda",
-    curriculum: "Rwanda Competence Based Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "BI",
-    name: "Burundi",
-    curriculum: "Burundi National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "ET",
-    name: "Ethiopia",
-    curriculum: "Ethiopian National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "ZA",
-    name: "South Africa",
-    curriculum: "CAPS",
-    note: "Curriculum and Assessment Policy Statement",
-  },
-  {
-    code: "NG",
-    name: "Nigeria",
-    curriculum: "Nigerian National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "GH",
-    name: "Ghana",
-    curriculum: "Ghana Standards-Based Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "CM",
-    name: "Cameroon",
-    curriculum: "Cameroon National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "US",
-    name: "United States",
-    curriculum: "General Program",
-    note: "Flexible school setup",
-  },
-  {
-    code: "CA",
-    name: "Canada",
-    curriculum: "General Program",
-    note: "Flexible school setup",
-  },
-  {
-    code: "GB",
-    name: "United Kingdom",
-    curriculum: "British Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "IN",
-    name: "India",
-    curriculum: "CBSE",
-    note: "Suggested from country",
-  },
-  {
-    code: "AE",
-    name: "United Arab Emirates",
-    curriculum: "General Program",
-    note: "Flexible school setup",
-  },
-  {
-    code: "SA",
-    name: "Saudi Arabia",
-    curriculum: "Saudi National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "EG",
-    name: "Egypt",
-    curriculum: "Egyptian National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "FR",
-    name: "France",
-    curriculum: "French National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "DE",
-    name: "Germany",
-    curriculum: "General Program",
-    note: "Flexible school setup",
-  },
-  {
-    code: "BR",
-    name: "Brazil",
-    curriculum: "Brazilian National Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "AU",
-    name: "Australia",
-    curriculum: "Australian Curriculum",
-    note: "Suggested from country",
-  },
-  {
-    code: "NZ",
-    name: "New Zealand",
-    curriculum: "New Zealand Curriculum",
-    note: "Suggested from country",
-  },
+  { code: "KE", name: "Kenya", curriculum: "CBC", note: "Competency Based Curriculum" },
+  { code: "UG", name: "Uganda", curriculum: "Uganda National Curriculum", note: "Suggested from country" },
+  { code: "TZ", name: "Tanzania", curriculum: "Tanzania National Curriculum", note: "Suggested from country" },
+  { code: "RW", name: "Rwanda", curriculum: "Rwanda Competence Based Curriculum", note: "Suggested from country" },
+  { code: "BI", name: "Burundi", curriculum: "Burundi National Curriculum", note: "Suggested from country" },
+  { code: "ET", name: "Ethiopia", curriculum: "Ethiopian National Curriculum", note: "Suggested from country" },
+  { code: "ZA", name: "South Africa", curriculum: "CAPS", note: "Curriculum and Assessment Policy Statement" },
+  { code: "NG", name: "Nigeria", curriculum: "Nigerian National Curriculum", note: "Suggested from country" },
+  { code: "GH", name: "Ghana", curriculum: "Ghana Standards-Based Curriculum", note: "Suggested from country" },
+  { code: "CM", name: "Cameroon", curriculum: "Cameroon National Curriculum", note: "Suggested from country" },
+  { code: "US", name: "United States", curriculum: "General Program", note: "Flexible school setup" },
+  { code: "CA", name: "Canada", curriculum: "General Program", note: "Flexible school setup" },
+  { code: "GB", name: "United Kingdom", curriculum: "British Curriculum", note: "Suggested from country" },
+  { code: "IN", name: "India", curriculum: "CBSE", note: "Suggested from country" },
+  { code: "AE", name: "United Arab Emirates", curriculum: "General Program", note: "Flexible school setup" },
+  { code: "SA", name: "Saudi Arabia", curriculum: "Saudi National Curriculum", note: "Suggested from country" },
+  { code: "EG", name: "Egypt", curriculum: "Egyptian National Curriculum", note: "Suggested from country" },
+  { code: "FR", name: "France", curriculum: "French National Curriculum", note: "Suggested from country" },
+  { code: "DE", name: "Germany", curriculum: "General Program", note: "Flexible school setup" },
+  { code: "BR", name: "Brazil", curriculum: "Brazilian National Curriculum", note: "Suggested from country" },
+  { code: "AU", name: "Australia", curriculum: "Australian Curriculum", note: "Suggested from country" },
+  { code: "NZ", name: "New Zealand", curriculum: "New Zealand Curriculum", note: "Suggested from country" },
 ];
 
 function MiniInfo({
@@ -277,15 +188,13 @@ export default function CreateSchoolPage() {
 
   useEffect(() => {
     async function load() {
-      const token = getStoredToken();
-
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
-
       try {
-        const meResponse = await getMeWithToken(token);
+        const meResponse = await getMe();
+
+        if (!meResponse) {
+          router.replace("/login");
+          return;
+        }
 
         if (!meResponse.emailVerified) {
           router.replace("/verify-email");
@@ -347,7 +256,11 @@ export default function CreateSchoolPage() {
     setError(null);
 
     if (!schoolName.trim()) {
-      setError(`Give your ${prettyInstitutionLabel(institutionType).toLowerCase()} a name to continue.`);
+      setError(
+        `Give your ${prettyInstitutionLabel(
+          institutionType
+        ).toLowerCase()} a name to continue.`
+      );
       return;
     }
 
@@ -364,21 +277,8 @@ export default function CreateSchoolPage() {
     setIsBusy(true);
 
     try {
-      const token = getStoredToken();
-
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-
-      const res = await fetch(`${apiUrl}/schools`, {
+      await apiFetch<CreateSchoolResponse>("/schools", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           name: schoolName.trim(),
           country: selectedCountry.name,
@@ -388,21 +288,6 @@ export default function CreateSchoolPage() {
           branchName: "Main Campus",
         }),
       });
-
-      const payload = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          Array.isArray(payload?.message)
-            ? payload.message[0]
-            : payload?.message ||
-                "We couldn’t create your Skuully workspace yet."
-        );
-      }
-
-      if (payload?.token) {
-        localStorage.setItem("token", payload.token);
-      }
 
       router.push("/dashboard/control-center");
     } catch (err) {

@@ -16,6 +16,11 @@ export default function HomePage() {
 
         if (cancelled) return;
 
+        if (!me) {
+          router.replace("/login");
+          return;
+        }
+
         if (!me.emailVerified) {
           router.replace("/verify-email");
           return;

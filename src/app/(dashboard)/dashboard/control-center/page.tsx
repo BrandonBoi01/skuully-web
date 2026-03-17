@@ -17,7 +17,7 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { GlassCard } from "@/components/glass/glass-card";
 import { useDashboardLive } from "@/hooks/use-dashboard-live";
 import { apiFetch } from "@/lib/api";
-import { getStoredToken, getMeWithToken } from "@/lib/auth";
+import { getMe } from "@/lib/auth";
 import {
   ControlCenterHeatMap,
   type HeatMapClass,
@@ -117,6 +117,7 @@ type AuthMeResponse = {
   fullName: string;
   email: string;
   skuullyId?: string | null;
+  emailVerified?: boolean;
   memberships?: Array<{
     role: string;
     status: string;
@@ -217,15 +218,13 @@ export default function ControlCenterPage() {
 
   useEffect(() => {
     const run = async () => {
-      const token = getStoredToken();
-
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
-
       try {
-        const me = await getMeWithToken(token);
+        const me = await getMe();
+
+        if (!me) {
+          router.replace("/login");
+          return;
+        }
 
         if (!me.emailVerified) {
           router.replace("/verify-email");
@@ -262,14 +261,15 @@ export default function ControlCenterPage() {
 
   const { data: heatMap, isLoading: heatMapLoading } = useQuery<HeatMapResponse>({
     queryKey: ["control-center-heat-map"],
-    queryFn: () => apiFetch<HeatMapResponse>("/dashboard/control-center/heat-map"),
+    queryFn: () =>
+      apiFetch<HeatMapResponse>("/dashboard/control-center/heat-map"),
     retry: false,
     enabled: authChecked,
   });
 
-  const { data: me } = useQuery<AuthMeResponse>({
+  const { data: me } = useQuery<AuthMeResponse | null>({
     queryKey: ["auth-me"],
-    queryFn: () => apiFetch<AuthMeResponse>("/auth/me"),
+    queryFn: () => getMe(),
     retry: false,
     enabled: authChecked,
   });
@@ -329,8 +329,7 @@ export default function ControlCenterPage() {
 
   const greeting = getGreeting(now);
   const firstName = getFirstName(me?.fullName ?? "Admin");
-  const schoolName =
-    me?.memberships?.[0]?.school?.name ?? "Skuully Demo School";
+  const schoolName = me?.memberships?.[0]?.school?.name ?? "Skuully Workspace";
   const curriculumName = heatMap?.program?.template?.name ?? null;
   const roleName = me?.context?.role ?? me?.memberships?.[0]?.role ?? null;
   const currentTimeLabel = mounted ? formatNow(now) : "Loading time...";
@@ -559,7 +558,10 @@ export default function ControlCenterPage() {
 
                 {view.pendingClasses.length > visiblePendingClasses.length ? (
                   <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/50">
-                    +{formatCount(view.pendingClasses.length - visiblePendingClasses.length)} more classes pending
+                    +{formatCount(
+                      view.pendingClasses.length - visiblePendingClasses.length
+                    )}{" "}
+                    more classes pending
                   </div>
                 ) : null}
               </>
@@ -599,7 +601,8 @@ export default function ControlCenterPage() {
                     {event.eventType} • {event.personType}
                   </div>
                   <div className="mt-1 text-xs text-white/50">
-                    {event.source} • {mounted ? formatEventTime(event.occurredAt) : "--:--"}
+                    {event.source} •{" "}
+                    {mounted ? formatEventTime(event.occurredAt) : "--:--"}
                   </div>
                 </div>
               ))
@@ -644,7 +647,10 @@ export default function ControlCenterPage() {
 
                 {view.totalRiskStudents > visibleRiskStudents.length ? (
                   <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/50">
-                    +{formatCount(view.totalRiskStudents - visibleRiskStudents.length)} more learners with risk signals
+                    +{formatCount(
+                      view.totalRiskStudents - visibleRiskStudents.length
+                    )}{" "}
+                    more learners with risk signals
                   </div>
                 ) : null}
               </>

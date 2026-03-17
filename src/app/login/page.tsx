@@ -12,6 +12,7 @@ import {
   loginWithEmail,
   setPendingResetEmail,
   setPendingVerificationEmail,
+  markVerificationCodeSent,
 } from "@/lib/auth";
 
 function mapLoginError(message: string) {
@@ -55,17 +56,34 @@ export default function LoginPage() {
     setIsBusy(true);
 
     try {
-      const login = await loginWithEmail(email, password);
-      const finalSession = await finalizeLoginSession();
+      const normalizedEmail = email.trim().toLowerCase();
+
+      const login = await loginWithEmail(normalizedEmail, password);
 
       if (!login.emailVerified || login.requiresEmailVerification) {
         setPendingVerificationEmail(login.user.email);
+        markVerificationCodeSent();
         setNotice("Your verification code is waiting in your email.");
         router.replace("/verify-email");
         return;
       }
 
-      if (finalSession.me.context?.schoolId && finalSession.me.context?.programId) {
+      const finalSession = await finalizeLoginSession();
+      const me = finalSession.me;
+
+      if (!me) {
+        setError("We signed you in, but could not load your account.");
+        return;
+      }
+
+      if (!me.emailVerified) {
+        setPendingVerificationEmail(me.email);
+        markVerificationCodeSent();
+        router.replace("/verify-email");
+        return;
+      }
+
+      if (me.context?.schoolId && me.context?.programId) {
         router.replace("/dashboard/control-center");
         return;
       }
@@ -82,12 +100,15 @@ export default function LoginPage() {
   }
 
   function handleForgotPassword() {
-    if (email.trim()) {
-      setPendingResetEmail(email.trim());
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (normalizedEmail) {
+      setPendingResetEmail(normalizedEmail);
     }
+
     router.push(
       `/forgot-password${
-        email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""
+        normalizedEmail ? `?email=${encodeURIComponent(normalizedEmail)}` : ""
       }`
     );
   }
