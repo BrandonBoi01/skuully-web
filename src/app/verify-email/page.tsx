@@ -12,6 +12,7 @@ import {
   getVerificationTimeRemainingMs,
   markVerificationCodeSent,
   resendVerificationCode,
+  setPendingVerificationEmail,
   verifyEmailCode,
 } from "@/lib/auth";
 
@@ -24,6 +25,10 @@ function mapVerifyError(message: string) {
 
   if (text.includes("invalid verification request")) {
     return "We couldn’t verify that request.";
+  }
+
+  if (text.includes("already verified")) {
+    return "This email is already verified. You can continue to sign in.";
   }
 
   return "We couldn’t verify your email.";
@@ -63,17 +68,37 @@ export default function VerifyEmailPage() {
     return () => window.clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   const expired = useMemo(() => timeRemaining <= 0, [timeRemaining]);
+  const canResend = !!email.trim() && !isResending;
+  const normalizedEmail = email.trim().toLowerCase();
 
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!normalizedEmail) {
+      setError("Enter the email you used to create your account.");
+      return;
+    }
+
+    if (code.trim().length !== 6) {
+      setError("Enter the 6-digit code from your email.");
+      return;
+    }
+
     setIsVerifying(true);
 
     try {
-      await verifyEmailCode(email, code);
+      await verifyEmailCode(normalizedEmail, code.trim());
       clearPendingVerificationEmail();
       clearVerificationCodeSentAt();
+      setNotice("Email verified successfully.");
       router.replace("/onboarding");
     } catch (err) {
       setError(
@@ -88,10 +113,17 @@ export default function VerifyEmailPage() {
 
   async function handleResend() {
     setError(null);
+
+    if (!normalizedEmail) {
+      setError("Enter your email first so we know where to send the code.");
+      return;
+    }
+
     setIsResending(true);
 
     try {
-      const result = await resendVerificationCode(email);
+      const result = await resendVerificationCode(normalizedEmail);
+      setPendingVerificationEmail(normalizedEmail);
       markVerificationCodeSent();
       setTimeRemaining(getVerificationTimeRemainingMs());
       setNotice(result.message || "A fresh code is on its way.");
@@ -102,18 +134,48 @@ export default function VerifyEmailPage() {
     }
   }
 
+  function handleChangeEmail() {
+    clearPendingVerificationEmail();
+    clearVerificationCodeSentAt();
+    router.push("/register");
+  }
+
+  function handleBackToLogin() {
+    if (normalizedEmail) {
+      setPendingVerificationEmail(normalizedEmail);
+    }
+    router.push("/login");
+  }
+
   return (
     <>
       <AuthShell
         title="Check your email"
-        subtitle="A secure code is waiting in your inbox. Enter it to continue into the future of education."
+        subtitle="Enter the 6-digit code we sent. Most codes arrive within a minute. If it takes longer than a few minutes, resend it or use another email."
         footer={
-          <p className="text-sm text-white/50">
-            Need a different email?{" "}
-            <Link href="/login" className="text-white underline underline-offset-4">
-              Go back
-            </Link>
-          </p>
+          <div className="space-y-3 text-sm text-white/50">
+            <p>
+              Wrong email or no code yet? You can resend, change your email, or go back to sign in.
+            </p>
+
+            <div className="flex flex-wrap gap-4">
+              <button
+                type="button"
+                onClick={handleChangeEmail}
+                className="text-white underline underline-offset-4"
+              >
+                Change email
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBackToLogin}
+                className="text-white underline underline-offset-4"
+              >
+                Back to sign in
+              </button>
+            </div>
+          </div>
         }
       >
         <form className="space-y-4" onSubmit={handleVerify}>
@@ -125,6 +187,7 @@ export default function VerifyEmailPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@example.com"
+              autoComplete="email"
               required
             />
           </div>
@@ -133,7 +196,7 @@ export default function VerifyEmailPage() {
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-sm text-white/70">Code</label>
               <span className={`text-xs ${expired ? "text-rose-300" : "text-white/45"}`}>
-                {expired ? "Expired" : `Expires in ${formatTime(timeRemaining)}`}
+                {expired ? "Code expired" : `Expires in ${formatTime(timeRemaining)}`}
               </span>
             </div>
 
@@ -144,9 +207,14 @@ export default function VerifyEmailPage() {
                 setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
               }
               inputMode="numeric"
+              autoComplete="one-time-code"
               placeholder="123456"
               required
             />
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">
+            Didn’t get the code? Check spam or promotions first. If it still doesn’t arrive within 2–3 minutes, resend it or change your email.
           </div>
 
           {error ? (
@@ -157,7 +225,7 @@ export default function VerifyEmailPage() {
 
           <button
             type="submit"
-            disabled={isVerifying || expired}
+            disabled={isVerifying || !normalizedEmail || code.trim().length !== 6}
             className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-3.5 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isVerifying ? "Verifying..." : "Continue"}
@@ -166,7 +234,7 @@ export default function VerifyEmailPage() {
           <button
             type="button"
             onClick={handleResend}
-            disabled={isResending || !email}
+            disabled={!canResend}
             className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm text-white/75 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isResending ? "Sending..." : "Resend code"}
