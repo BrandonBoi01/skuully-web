@@ -10,6 +10,7 @@ import {
   clearVerificationCodeSentAt,
   getPendingVerificationEmail,
   getVerificationTimeRemainingMs,
+  logoutSession,
   markVerificationCodeSent,
   resendVerificationCode,
   setPendingVerificationEmail,
@@ -50,6 +51,7 @@ export default function VerifyEmailPage() {
   const [notice, setNotice] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
 
   useEffect(() => {
@@ -75,8 +77,8 @@ export default function VerifyEmailPage() {
   }, [notice]);
 
   const expired = useMemo(() => timeRemaining <= 0, [timeRemaining]);
-  const canResend = !!email.trim() && !isResending;
   const normalizedEmail = email.trim().toLowerCase();
+  const canResend = !!normalizedEmail && !isResending && !isLeaving;
 
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -134,17 +136,34 @@ export default function VerifyEmailPage() {
     }
   }
 
-  function handleChangeEmail() {
-    clearPendingVerificationEmail();
-    clearVerificationCodeSentAt();
-    router.push("/register");
+  async function handleChangeEmail() {
+    setError(null);
+    setIsLeaving(true);
+
+    try {
+      await logoutSession();
+    } catch {
+      // ignore logout failures; continue clearing local verification state
+    } finally {
+      clearPendingVerificationEmail();
+      clearVerificationCodeSentAt();
+      router.replace("/register");
+    }
   }
 
-  function handleBackToLogin() {
-    if (normalizedEmail) {
-      setPendingVerificationEmail(normalizedEmail);
+  async function handleBackToLogin() {
+    setError(null);
+    setIsLeaving(true);
+
+    try {
+      await logoutSession();
+    } catch {
+      // ignore logout failures; continue clearing local verification state
+    } finally {
+      clearVerificationCodeSentAt();
+      clearPendingVerificationEmail();
+      router.replace("/login");
     }
-    router.push("/login");
   }
 
   return (
@@ -155,24 +174,27 @@ export default function VerifyEmailPage() {
         footer={
           <div className="space-y-3 text-sm text-white/50">
             <p>
-              Wrong email or no code yet? You can resend, change your email, or go back to sign in.
+              Wrong email or no code yet? You can resend, change your email, or
+              go back to sign in.
             </p>
 
             <div className="flex flex-wrap gap-4">
               <button
                 type="button"
                 onClick={handleChangeEmail}
-                className="text-white underline underline-offset-4"
+                disabled={isLeaving || isVerifying || isResending}
+                className="text-white underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Change email
+                {isLeaving ? "Leaving..." : "Change email"}
               </button>
 
               <button
                 type="button"
                 onClick={handleBackToLogin}
-                className="text-white underline underline-offset-4"
+                disabled={isLeaving || isVerifying || isResending}
+                className="text-white underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Back to sign in
+                {isLeaving ? "Leaving..." : "Back to sign in"}
               </button>
             </div>
           </div>
@@ -195,7 +217,11 @@ export default function VerifyEmailPage() {
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-sm text-white/70">Code</label>
-              <span className={`text-xs ${expired ? "text-rose-300" : "text-white/45"}`}>
+              <span
+                className={`text-xs ${
+                  expired ? "text-rose-300" : "text-white/45"
+                }`}
+              >
                 {expired ? "Code expired" : `Expires in ${formatTime(timeRemaining)}`}
               </span>
             </div>
@@ -214,7 +240,8 @@ export default function VerifyEmailPage() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">
-            Didn’t get the code? Check spam or promotions first. If it still doesn’t arrive within 2–3 minutes, resend it or change your email.
+            Didn’t get the code? Check spam or promotions first. If it still
+            doesn’t arrive within 2–3 minutes, resend it or change your email.
           </div>
 
           {error ? (
@@ -225,7 +252,12 @@ export default function VerifyEmailPage() {
 
           <button
             type="submit"
-            disabled={isVerifying || !normalizedEmail || code.trim().length !== 6}
+            disabled={
+              isVerifying ||
+              isLeaving ||
+              !normalizedEmail ||
+              code.trim().length !== 6
+            }
             className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-3.5 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isVerifying ? "Verifying..." : "Continue"}
@@ -239,6 +271,13 @@ export default function VerifyEmailPage() {
           >
             {isResending ? "Sending..." : "Resend code"}
           </button>
+
+          <div className="text-center text-sm text-white/45">
+            Prefer signing in instead?{" "}
+            <Link href="/login" className="text-white underline underline-offset-4">
+              Open sign in
+            </Link>
+          </div>
         </form>
       </AuthShell>
 
