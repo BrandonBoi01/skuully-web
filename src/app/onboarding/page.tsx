@@ -175,7 +175,7 @@ export default function OnboardingPage() {
     }
 
     if (currentStep === "explore_start" && exploreStart) {
-      router.push("/explore");
+    router.push("/onboarding/explore-setup");
     }
   }
 
