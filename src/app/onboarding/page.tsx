@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Network,
   School,
+  ShoppingBag,
   UserCircle2,
   UserRoundCheck,
   Users,
@@ -20,15 +21,15 @@ import {
   readOnboardingState,
   writeOnboardingState,
   type BuildInstitutionType,
+  type ExploreStart,
   type JoinRole,
   type OnboardingRoute,
-  type PersonalStart,
 } from "@/lib/onboarding-flow";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { ChoiceCard } from "@/components/onboarding/choice-card";
 import { QuestionStep } from "@/components/onboarding/question-step";
 
-type StepKey = "route" | "build_type" | "join_role" | "personal_start";
+type StepKey = "route" | "build_type" | "join_role" | "explore_start";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export default function OnboardingPage() {
   const [route, setRoute] = useState<OnboardingRoute | null>(null);
   const [buildType, setBuildType] = useState<BuildInstitutionType | null>(null);
   const [joinRole, setJoinRole] = useState<JoinRole | null>(null);
-  const [personalStart, setPersonalStart] = useState<PersonalStart | null>(null);
+  const [exploreStart, setExploreStart] = useState<ExploreStart | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -64,14 +65,14 @@ export default function OnboardingPage() {
         setRoute(saved.route ?? null);
         setBuildType(saved.buildInstitutionType ?? null);
         setJoinRole(saved.joinRole ?? null);
-        setPersonalStart(saved.personalStart ?? null);
+        setExploreStart(saved.exploreStart ?? null);
 
         if (saved.route === "build_institution") {
           setCurrentStep("build_type");
         } else if (saved.route === "join_institution") {
           setCurrentStep("join_role");
-        } else if (saved.route === "start_as_me") {
-          setCurrentStep("personal_start");
+        } else if (saved.route === "explore_skuully") {
+          setCurrentStep("explore_start");
         } else {
           setCurrentStep("route");
         }
@@ -90,14 +91,14 @@ export default function OnboardingPage() {
       route,
       buildInstitutionType: buildType,
       joinRole,
-      personalStart,
+      exploreStart,
     });
-  }, [route, buildType, joinRole, personalStart]);
+  }, [route, buildType, joinRole, exploreStart]);
 
   const totalSteps = useMemo(() => {
     if (route === "build_institution") return 2;
     if (route === "join_institution") return 2;
-    if (route === "start_as_me") return 2;
+    if (route === "explore_skuully") return 2;
     return 1;
   }, [route]);
 
@@ -110,7 +111,7 @@ export default function OnboardingPage() {
     if (currentStep === "route") return "What brings you to Skuully?";
     if (currentStep === "build_type") return "What are you building?";
     if (currentStep === "join_role") return "How are you joining?";
-    return "What do you want to begin with?";
+    return "What do you want to explore first?";
   }, [currentStep]);
 
   const subtitle = useMemo(() => {
@@ -123,16 +124,16 @@ export default function OnboardingPage() {
     if (currentStep === "join_role") {
       return "We’ll shape the next step around your role.";
     }
-    return "Start where you are. Grow when you’re ready.";
+    return "Start with the part of Skuully you want to see first.";
   }, [currentStep]);
 
   const canContinue = useMemo(() => {
     if (currentStep === "route") return !!route;
     if (currentStep === "build_type") return !!buildType;
     if (currentStep === "join_role") return !!joinRole;
-    if (currentStep === "personal_start") return !!personalStart;
+    if (currentStep === "explore_start") return !!exploreStart;
     return false;
-  }, [currentStep, route, buildType, joinRole, personalStart]);
+  }, [currentStep, route, buildType, joinRole, exploreStart]);
 
   function handleBack() {
     if (currentStep === "route") {
@@ -155,8 +156,9 @@ export default function OnboardingPage() {
         return;
       }
 
-      if (route === "start_as_me") {
-        setCurrentStep("personal_start");
+      if (route === "explore_skuully") {
+        setCurrentStep("explore_start");
+        return;
       }
 
       return;
@@ -172,8 +174,8 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (currentStep === "personal_start" && personalStart) {
-      router.push("/dashboard/control-center");
+    if (currentStep === "explore_start" && exploreStart) {
+      router.push("/explore");
     }
   }
 
@@ -182,7 +184,7 @@ export default function OnboardingPage() {
     setRoute(null);
     setBuildType(null);
     setJoinRole(null);
-    setPersonalStart(null);
+    setExploreStart(null);
     setCurrentStep("route");
   }
 
@@ -238,7 +240,7 @@ export default function OnboardingPage() {
     >
       <QuestionStep>
         {currentStep === "route" ? (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid items-stretch gap-4 md:grid-cols-3">
             <ChoiceCard
               title="Build an institution"
               description="Open a workspace for a school, college, university, or academy."
@@ -256,17 +258,17 @@ export default function OnboardingPage() {
             />
 
             <ChoiceCard
-              title="Start as me"
-              description="Begin with your personal identity, learning, or community space."
+              title="Explore Skuully"
+              description="Discover communities, people, schools, and the marketplace."
               icon={UserCircle2}
-              selected={route === "start_as_me"}
-              onClick={() => setRoute("start_as_me")}
+              selected={route === "explore_skuully"}
+              onClick={() => setRoute("explore_skuully")}
             />
           </div>
         ) : null}
 
         {currentStep === "build_type" ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <ChoiceCard
               title="School"
               description="Primary or secondary academic workspace."
@@ -313,7 +315,7 @@ export default function OnboardingPage() {
         ) : null}
 
         {currentStep === "join_role" ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <ChoiceCard
               title="I have an invite"
               description="Use an invite code to enter directly."
@@ -352,35 +354,35 @@ export default function OnboardingPage() {
           </div>
         ) : null}
 
-        {currentStep === "personal_start" ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {currentStep === "explore_start" ? (
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <ChoiceCard
-              title="My profile"
-              description="Set up your identity and presence."
-              icon={UserCircle2}
-              selected={personalStart === "profile"}
-              onClick={() => setPersonalStart("profile")}
-            />
-            <ChoiceCard
-              title="Learning"
-              description="Start from your learning path."
-              icon={GraduationCap}
-              selected={personalStart === "learning"}
-              onClick={() => setPersonalStart("learning")}
-            />
-            <ChoiceCard
-              title="Community"
-              description="Discover people, groups, and discussions."
+              title="Communities"
+              description="Join conversations, groups, and shared spaces."
               icon={Users}
-              selected={personalStart === "community"}
-              onClick={() => setPersonalStart("community")}
+              selected={exploreStart === "communities"}
+              onClick={() => setExploreStart("communities")}
+            />
+            <ChoiceCard
+              title="Schools"
+              description="Discover institutions, programs, and academic spaces."
+              icon={School}
+              selected={exploreStart === "schools"}
+              onClick={() => setExploreStart("schools")}
+            />
+            <ChoiceCard
+              title="People"
+              description="Follow learners, educators, and builders."
+              icon={UserCircle2}
+              selected={exploreStart === "people"}
+              onClick={() => setExploreStart("people")}
             />
             <ChoiceCard
               title="Marketplace"
-              description="Explore opportunities, services, and tools."
-              icon={Briefcase}
-              selected={personalStart === "marketplace"}
-              onClick={() => setPersonalStart("marketplace")}
+              description="Explore tools, services, and useful opportunities."
+              icon={ShoppingBag}
+              selected={exploreStart === "marketplace"}
+              onClick={() => setExploreStart("marketplace")}
             />
           </div>
         ) : null}

@@ -1,7 +1,7 @@
 export type OnboardingRoute =
   | "build_institution"
   | "join_institution"
-  | "start_as_me";
+  | "explore_skuully";
 
 export type BuildInstitutionType =
   | "school"
@@ -19,17 +19,17 @@ export type JoinRole =
   | "parent"
   | "staff";
 
-export type PersonalStart =
-  | "profile"
-  | "learning"
-  | "community"
+export type ExploreStart =
+  | "communities"
+  | "schools"
+  | "people"
   | "marketplace";
 
 export type OnboardingState = {
   route: OnboardingRoute | null;
   buildInstitutionType?: BuildInstitutionType | null;
   joinRole?: JoinRole | null;
-  personalStart?: PersonalStart | null;
+  exploreStart?: ExploreStart | null;
 };
 
 export const ONBOARDING_STORAGE_KEY = "skuully_onboarding_state";
