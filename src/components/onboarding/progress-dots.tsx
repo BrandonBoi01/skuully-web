@@ -4,15 +4,22 @@ type ProgressDotsProps = {
 };
 
 export function ProgressDots({ total, current }: ProgressDotsProps) {
+  const safeTotal = Math.max(1, total);
+  const safeCurrent = Math.min(Math.max(1, current), safeTotal);
+
   return (
     <div
       className="flex items-center gap-2"
-      aria-label={`Step ${current} of ${total}`}
+      aria-label={`Step ${safeCurrent} of ${safeTotal}`}
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={safeTotal}
+      aria-valuenow={safeCurrent}
     >
-      {Array.from({ length: total }).map((_, index) => {
+      {Array.from({ length: safeTotal }).map((_, index) => {
         const step = index + 1;
-        const active = step === current;
-        const complete = step < current;
+        const active = step === safeCurrent;
+        const complete = step < safeCurrent;
 
         return (
           <span
@@ -22,8 +29,8 @@ export function ProgressDots({ total, current }: ProgressDotsProps) {
               active
                 ? "w-8 bg-white"
                 : complete
-                ? "w-2 bg-white/60"
-                : "w-2 bg-white/20",
+                ? "w-3 bg-white/60"
+                : "w-3 bg-white/20",
             ].join(" ")}
           />
         );

@@ -36,7 +36,7 @@ type MeResponse = {
   };
 };
 
-type BuildStep = "identity" | "curriculum" | "details" | "security" | "review";
+type BuildStep = "identity" | "academic" | "details" | "security" | "review";
 
 type InstitutionDetails = {
   learningMode: string;
@@ -44,16 +44,38 @@ type InstitutionDetails = {
   levelType: string;
 };
 
-const INTERNATIONAL_CURRICULA = [
-  "Cambridge Curriculum",
-  "International Baccalaureate (IB)",
-  "American Curriculum",
-  "British Curriculum",
-  "CBSE",
-  "IGCSE",
-  "Pearson Edexcel",
-  "Montessori",
-  "Waldorf",
+type PhoneCountry = {
+  code: string;
+  name: string;
+  flag: string;
+  dialCode: string;
+  min: number;
+  max: number;
+};
+
+const PHONE_COUNTRIES: PhoneCountry[] = [
+  { code: "KE", name: "Kenya", flag: "🇰🇪", dialCode: "+254", min: 9, max: 9 },
+  { code: "UG", name: "Uganda", flag: "🇺🇬", dialCode: "+256", min: 9, max: 9 },
+  { code: "TZ", name: "Tanzania", flag: "🇹🇿", dialCode: "+255", min: 9, max: 9 },
+  { code: "RW", name: "Rwanda", flag: "🇷🇼", dialCode: "+250", min: 9, max: 9 },
+  { code: "BI", name: "Burundi", flag: "🇧🇮", dialCode: "+257", min: 8, max: 8 },
+  { code: "ET", name: "Ethiopia", flag: "🇪🇹", dialCode: "+251", min: 9, max: 9 },
+  { code: "ZA", name: "South Africa", flag: "🇿🇦", dialCode: "+27", min: 9, max: 9 },
+  { code: "NG", name: "Nigeria", flag: "🇳🇬", dialCode: "+234", min: 10, max: 10 },
+  { code: "GH", name: "Ghana", flag: "🇬🇭", dialCode: "+233", min: 9, max: 9 },
+  { code: "CM", name: "Cameroon", flag: "🇨🇲", dialCode: "+237", min: 9, max: 9 },
+  { code: "US", name: "United States", flag: "🇺🇸", dialCode: "+1", min: 10, max: 10 },
+  { code: "CA", name: "Canada", flag: "🇨🇦", dialCode: "+1", min: 10, max: 10 },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧", dialCode: "+44", min: 10, max: 10 },
+  { code: "IN", name: "India", flag: "🇮🇳", dialCode: "+91", min: 10, max: 10 },
+  { code: "AE", name: "United Arab Emirates", flag: "🇦🇪", dialCode: "+971", min: 9, max: 9 },
+  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦", dialCode: "+966", min: 9, max: 9 },
+  { code: "EG", name: "Egypt", flag: "🇪🇬", dialCode: "+20", min: 10, max: 10 },
+  { code: "FR", name: "France", flag: "🇫🇷", dialCode: "+33", min: 9, max: 9 },
+  { code: "DE", name: "Germany", flag: "🇩🇪", dialCode: "+49", min: 10, max: 11 },
+  { code: "BR", name: "Brazil", flag: "🇧🇷", dialCode: "+55", min: 10, max: 11 },
+  { code: "AU", name: "Australia", flag: "🇦🇺", dialCode: "+61", min: 9, max: 9 },
+  { code: "NZ", name: "New Zealand", flag: "🇳🇿", dialCode: "+64", min: 8, max: 10 },
 ];
 
 function prettyInstitutionLabel(type: BuildInstitutionType | null) {
@@ -99,6 +121,87 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
       <div className="mt-2 text-base font-medium text-white">{value}</div>
     </div>
   );
+}
+
+function getAcademicLabel(type: BuildInstitutionType | null) {
+  switch (type) {
+    case "school":
+    case "academy":
+      return "Curricula";
+    case "college":
+    case "university":
+      return "Academic frameworks";
+    case "polytechnic":
+    case "vocational":
+    case "training_center":
+      return "Training frameworks";
+    default:
+      return "Academic setup";
+  }
+}
+
+function getAcademicDescription(type: BuildInstitutionType | null) {
+  switch (type) {
+    case "school":
+    case "academy":
+      return "Choose one or more curricula for your institution, or set them up later.";
+    case "college":
+    case "university":
+      return "Choose the academic structures your institution will follow, or leave this for later.";
+    case "polytechnic":
+    case "vocational":
+    case "training_center":
+      return "Choose the training or certification structures that best fit your institution.";
+    default:
+      return "Choose the structure that best fits your institution.";
+  }
+}
+
+function getAcademicOptions(
+  type: BuildInstitutionType | null,
+  country: CountryOption | null
+) {
+  const countryCode = country?.code;
+
+  if (type === "school" || type === "academy") {
+    const options = [
+      ...(countryCode === "KE" ? ["CBC", "8-4-4"] : []),
+      ...(country?.nativeCurriculum ? [country.nativeCurriculum] : []),
+      "Cambridge Curriculum",
+      "International Baccalaureate (IB)",
+      "American Curriculum",
+      "British Curriculum",
+      "CBSE",
+      "IGCSE",
+      "Pearson Edexcel",
+      "Montessori",
+      "Waldorf",
+    ];
+
+    return options.filter((value, index, array) => array.indexOf(value) === index);
+  }
+
+  if (type === "college" || type === "university") {
+    return [
+      "Semester-based",
+      "Trimester-based",
+      "Modular",
+      "Credit-hour system",
+      "Competency-based",
+      "Outcome-based",
+      "Research-led",
+    ];
+  }
+
+  return [
+    "Certification-based",
+    "Competency-based",
+    "Module-based",
+    "Workshop-led",
+    "Apprenticeship-aligned",
+    "Industry-aligned",
+    "Outcome-based",
+  ];
 }
 
 function getInstitutionDetailOptions(type: BuildInstitutionType | null) {
@@ -154,6 +257,20 @@ function getInstitutionDetailOptions(type: BuildInstitutionType | null) {
   }
 }
 
+function normalizeDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function validatePhone(country: PhoneCountry, value: string) {
+  const cleaned = normalizeDigits(value);
+
+  if (!cleaned.length) return "Enter your phone number.";
+  if (cleaned.length < country.min) return "Phone number is too short for this country.";
+  if (cleaned.length > country.max) return "Phone number is too long for this country.";
+
+  return null;
+}
+
 export default function CreateSchoolPage() {
   const router = useRouter();
   const pickerRef = useRef<HTMLDivElement | null>(null);
@@ -169,9 +286,9 @@ export default function CreateSchoolPage() {
   const [selectedCountry, setSelectedCountry] = useState<CountryOption | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const [curriculumSearch, setCurriculumSearch] = useState("");
-  const [selectedCurriculum, setSelectedCurriculum] = useState("");
-  const [setCurriculumLater, setSetCurriculumLater] = useState(false);
+  const [academicSearch, setAcademicSearch] = useState("");
+  const [selectedAcademicItems, setSelectedAcademicItems] = useState<string[]>([]);
+  const [setAcademicLater, setSetAcademicLater] = useState(false);
 
   const [details, setDetails] = useState<InstitutionDetails>({
     learningMode: "",
@@ -179,10 +296,16 @@ export default function CreateSchoolPage() {
     levelType: "",
   });
 
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [addPhoneLater, setAddPhoneLater] = useState(true);
+  const [phoneCountryCode, setPhoneCountryCode] = useState("KE");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+
+  const currentPhoneCountry =
+    PHONE_COUNTRIES.find((item) => item.code === phoneCountryCode) ??
+    PHONE_COUNTRIES[0];
 
   useEffect(() => {
     async function load() {
@@ -218,7 +341,7 @@ export default function CreateSchoolPage() {
         const kenya = COUNTRIES.find((item) => item.code === "KE") ?? null;
         setSelectedCountry(kenya);
         setCountrySearch(kenya?.name ?? "");
-        setSelectedCurriculum(kenya?.nativeCurriculum ?? "");
+        setPhoneCountryCode(kenya?.code ?? "KE");
 
         setIsLoading(false);
       } catch {
@@ -253,34 +376,62 @@ export default function CreateSchoolPage() {
     );
   }, [countrySearch]);
 
-  const filteredCurricula = useMemo(() => {
-    const all = [
-      ...(selectedCountry?.nativeCurriculum ? [selectedCountry.nativeCurriculum] : []),
-      ...INTERNATIONAL_CURRICULA,
-    ].filter((value, index, array) => array.indexOf(value) === index);
+  const academicOptions = useMemo(
+    () => getAcademicOptions(institutionType, selectedCountry),
+    [institutionType, selectedCountry]
+  );
 
-    const query = curriculumSearch.trim().toLowerCase();
-    if (!query) return all;
+  const filteredAcademicOptions = useMemo(() => {
+    const query = academicSearch.trim().toLowerCase();
+    if (!query) return academicOptions;
 
-    return all.filter((item) => item.toLowerCase().includes(query));
-  }, [curriculumSearch, selectedCountry]);
+    return academicOptions.filter((item) =>
+      item.toLowerCase().includes(query)
+    );
+  }, [academicSearch, academicOptions]);
 
   const detailOptions = useMemo(
     () => getInstitutionDetailOptions(institutionType),
     [institutionType]
   );
 
-  const identityReady =
-    schoolName.trim().length >= 2 && !!selectedCountry;
+  const totalSteps = 5;
+  const currentStep =
+    step === "identity"
+      ? 1
+      : step === "academic"
+      ? 2
+      : step === "details"
+      ? 3
+      : step === "security"
+      ? 4
+      : 5;
 
-  const curriculumReady =
-    setCurriculumLater || selectedCurriculum.trim().length >= 2;
-
+  const identityReady = schoolName.trim().length >= 2 && !!selectedCountry;
+  const academicReady = setAcademicLater || selectedAcademicItems.length > 0;
   const detailsReady =
-    details.learningMode && details.ownership && details.levelType;
-
+    !!details.learningMode && !!details.ownership && !!details.levelType;
   const securityReady =
-    addPhoneLater || phoneNumber.trim().length >= 7;
+    addPhoneLater || !validatePhone(currentPhoneCountry, phoneNumber);
+
+  const normalizedPhone = `${currentPhoneCountry.dialCode}${normalizeDigits(
+    phoneNumber
+  )}`;
+
+  function toggleAcademicItem(value: string) {
+    setSetAcademicLater(false);
+    setSelectedAcademicItems((prev) =>
+      prev.includes(value)
+        ? prev.filter((item) => item !== value)
+        : [...prev, value]
+    );
+  }
+
+  function handlePhoneChange(value: string) {
+    const cleaned = normalizeDigits(value);
+    setPhoneNumber(cleaned);
+    setPhoneError(validatePhone(currentPhoneCountry, cleaned));
+  }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -289,6 +440,16 @@ export default function CreateSchoolPage() {
     if (!institutionType || !selectedCountry || !schoolName.trim()) {
       setError("Complete your institution setup before creating the workspace.");
       return;
+    }
+
+    if (!addPhoneLater) {
+      const validationError = validatePhone(currentPhoneCountry, phoneNumber);
+      setPhoneError(validationError);
+      if (validationError) {
+        setError(validationError);
+        setStep("security");
+        return;
+      }
     }
 
     setIsBusy(true);
@@ -305,14 +466,30 @@ export default function CreateSchoolPage() {
         body: JSON.stringify({
           name: schoolName.trim(),
           country: selectedCountry.name,
-          curriculumName: setCurriculumLater ? null : selectedCurriculum.trim(),
+          countryCode: selectedCountry.code,
           institutionType: mapInstitutionTypeForApi(institutionType),
           organizationName: schoolName.trim(),
           branchName: "Main Campus",
-          metadata: {
-            details,
-            phoneNumber: addPhoneLater ? null : phoneNumber.trim(),
-            setCurriculumLater,
+          academicSetup: {
+            label: getAcademicLabel(institutionType),
+            selectedItems: selectedAcademicItems,
+            setUpLater: setAcademicLater,
+          },
+          institutionProfile: {
+            learningMode: details.learningMode,
+            ownership: details.ownership,
+            levelType: details.levelType,
+          },
+          security: {
+            addPhoneLater,
+            phone: addPhoneLater
+              ? null
+              : {
+                  countryCode: currentPhoneCountry.code,
+                  dialCode: currentPhoneCountry.dialCode,
+                  nationalNumber: normalizeDigits(phoneNumber),
+                  e164: normalizedPhone,
+                },
           },
         }),
       });
@@ -344,14 +521,25 @@ export default function CreateSchoolPage() {
     setError(null);
 
     if (step === "identity" && identityReady) {
-      if (selectedCountry?.nativeCurriculum) {
-        setSelectedCurriculum(selectedCountry.nativeCurriculum);
+      if (!selectedAcademicItems.length && !setAcademicLater) {
+        if (
+          selectedCountry?.code === "KE" &&
+          (institutionType === "school" || institutionType === "academy")
+        ) {
+          setSelectedAcademicItems(["CBC"]);
+        } else if (
+          selectedCountry?.nativeCurriculum &&
+          (institutionType === "school" || institutionType === "academy")
+        ) {
+          setSelectedAcademicItems([selectedCountry.nativeCurriculum]);
+        }
       }
-      setStep("curriculum");
+
+      setStep("academic");
       return;
     }
 
-    if (step === "curriculum" && curriculumReady) {
+    if (step === "academic" && academicReady) {
       setStep("details");
       return;
     }
@@ -361,7 +549,16 @@ export default function CreateSchoolPage() {
       return;
     }
 
-    if (step === "security" && securityReady) {
+    if (step === "security") {
+      if (!addPhoneLater) {
+        const validationError = validatePhone(currentPhoneCountry, phoneNumber);
+        setPhoneError(validationError);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
+      }
+
       setStep("review");
     }
   }
@@ -374,13 +571,13 @@ export default function CreateSchoolPage() {
       return;
     }
 
-    if (step === "curriculum") {
+    if (step === "academic") {
       setStep("identity");
       return;
     }
 
     if (step === "details") {
-      setStep("curriculum");
+      setStep("academic");
       return;
     }
 
@@ -406,9 +603,11 @@ export default function CreateSchoolPage() {
 
   return (
     <OnboardingShell
-      step={2}
-      totalSteps={2}
-      title={`Build your ${prettyInstitutionLabel(institutionType).toLowerCase()} workspace`}
+      step={currentStep}
+      totalSteps={totalSteps}
+      title={`Build your ${prettyInstitutionLabel(
+        institutionType
+      ).toLowerCase()} workspace`}
       subtitle="We’ll shape a smart starting point around your choices."
       backHref="/onboarding"
       align="top"
@@ -428,7 +627,7 @@ export default function CreateSchoolPage() {
               onClick={goNext}
               disabled={
                 (step === "identity" && !identityReady) ||
-                (step === "curriculum" && !curriculumReady) ||
+                (step === "academic" && !academicReady) ||
                 (step === "details" && !detailsReady) ||
                 (step === "security" && !securityReady)
               }
@@ -451,7 +650,11 @@ export default function CreateSchoolPage() {
         </div>
       }
     >
-      <form id="create-school-form" className="space-y-6" onSubmit={handleCreate}>
+      <form
+        id="create-school-form"
+        className="space-y-6"
+        onSubmit={handleCreate}
+      >
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             {step === "identity" ? (
@@ -470,8 +673,13 @@ export default function CreateSchoolPage() {
                   />
                 </div>
 
-                <div ref={pickerRef} className="skuully-glass-card rounded-[24px] p-5">
-                  <label className="mb-3 block text-sm text-white/70">Country</label>
+                <div
+                  ref={pickerRef}
+                  className="skuully-glass-card rounded-[24px] p-5"
+                >
+                  <label className="mb-3 block text-sm text-white/70">
+                    Country
+                  </label>
 
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
@@ -493,7 +701,8 @@ export default function CreateSchoolPage() {
                       <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-[20px] border border-white/10 bg-[#0a1022] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
                         {filteredCountries.length > 0 ? (
                           filteredCountries.map((country) => {
-                            const selected = selectedCountry?.code === country.code;
+                            const selected =
+                              selectedCountry?.code === country.code;
 
                             return (
                               <button
@@ -503,6 +712,13 @@ export default function CreateSchoolPage() {
                                   setSelectedCountry(country);
                                   setCountrySearch(country.name);
                                   setPickerOpen(false);
+
+                                  const matchedPhoneCountry = PHONE_COUNTRIES.find(
+                                    (item) => item.code === country.code
+                                  );
+                                  if (matchedPhoneCountry) {
+                                    setPhoneCountryCode(matchedPhoneCountry.code);
+                                  }
                                 }}
                                 className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition ${
                                   selected
@@ -515,7 +731,8 @@ export default function CreateSchoolPage() {
                                     {country.name}
                                   </div>
                                   <div className="mt-1 text-xs text-white/45">
-                                    {country.nativeCurriculum ?? "No default curriculum suggestion"}
+                                    {country.nativeCurriculum ??
+                                      "No default academic suggestion"}
                                   </div>
                                 </div>
 
@@ -537,7 +754,7 @@ export default function CreateSchoolPage() {
               </>
             ) : null}
 
-            {step === "curriculum" ? (
+            {step === "academic" ? (
               <div className="skuully-glass-card rounded-[24px] p-5">
                 <div className="flex items-start gap-3">
                   <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
@@ -546,93 +763,78 @@ export default function CreateSchoolPage() {
 
                   <div className="min-w-0">
                     <h3 className="text-lg font-medium text-white">
-                      Curriculum setup
+                      {getAcademicLabel(institutionType)}
                     </h3>
                     <p className="mt-1 text-sm leading-7 text-white/55">
-                      Start with the suggested native curriculum, choose an international one, or set it later.
+                      {getAcademicDescription(institutionType)}
                     </p>
                   </div>
                 </div>
 
-                {selectedCountry?.nativeCurriculum ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSetCurriculumLater(false);
-                      setSelectedCurriculum(selectedCountry.nativeCurriculum ?? "");
-                    }}
-                    className={`mt-5 w-full rounded-[20px] border px-4 py-4 text-left transition ${
-                      !setCurriculumLater && selectedCurriculum === selectedCountry.nativeCurriculum
-                        ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          Suggested for {selectedCountry.name}
-                        </div>
-                        <div className="mt-1 text-sm text-white/52">
-                          {selectedCountry.nativeCurriculum}
-                        </div>
-                      </div>
-
-                      {!setCurriculumLater && selectedCurriculum === selectedCountry.nativeCurriculum ? (
-                        <Check className="h-4 w-4 text-[#9bb4ff]" />
-                      ) : null}
-                    </div>
-                  </button>
-                ) : null}
-
                 <div className="mt-4">
                   <label className="mb-3 block text-sm text-white/70">
-                    Search curricula
+                    Search options
                   </label>
 
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
                     <input
                       className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-4 text-white outline-none placeholder:text-white/25"
-                      value={curriculumSearch}
-                      onChange={(event) => setCurriculumSearch(event.target.value)}
-                      placeholder="Search native or international curricula"
+                      value={academicSearch}
+                      onChange={(event) => setAcademicSearch(event.target.value)}
+                      placeholder={`Search ${getAcademicLabel(
+                        institutionType
+                      ).toLowerCase()}`}
                     />
                   </div>
 
-                  <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-                    {filteredCurricula.map((curriculum) => {
-                      const selected =
-                        !setCurriculumLater && selectedCurriculum === curriculum;
+                  <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
+                    {filteredAcademicOptions.map((item) => {
+                      const selected = selectedAcademicItems.includes(item);
 
                       return (
                         <button
-                          key={curriculum}
+                          key={item}
                           type="button"
-                          onClick={() => {
-                            setSetCurriculumLater(false);
-                            setSelectedCurriculum(curriculum);
-                          }}
+                          onClick={() => toggleAcademicItem(item)}
                           className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
                             selected
                               ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
                               : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
                           }`}
                         >
-                          <span className="text-sm text-white">{curriculum}</span>
-                          {selected ? <Check className="h-4 w-4 text-[#9bb4ff]" /> : null}
+                          <span className="text-sm text-white">{item}</span>
+                          {selected ? (
+                            <Check className="h-4 w-4 text-[#9bb4ff]" />
+                          ) : null}
                         </button>
                       );
                     })}
                   </div>
 
+                  {selectedAcademicItems.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {selectedAcademicItems.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => toggleAcademicItem(item)}
+                          className="rounded-full border border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)] px-3 py-1.5 text-xs text-white/85"
+                        >
+                          {item} ×
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
                   <button
                     type="button"
                     onClick={() => {
-                      setSetCurriculumLater(true);
-                      setSelectedCurriculum("");
+                      setSetAcademicLater(true);
+                      setSelectedAcademicItems([]);
                     }}
                     className={`mt-4 w-full rounded-[20px] border px-4 py-4 text-left transition ${
-                      setCurriculumLater
+                      setAcademicLater
                         ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
                         : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
                     }`}
@@ -640,14 +842,14 @@ export default function CreateSchoolPage() {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="text-sm font-medium text-white">
-                          Select later
+                          Set up later
                         </div>
                         <div className="mt-1 text-sm text-white/52">
-                          Add or change curricula later during class or academic setup
+                          Continue now and configure this in more detail later
                         </div>
                       </div>
 
-                      {setCurriculumLater ? (
+                      {setAcademicLater ? (
                         <Check className="h-4 w-4 text-[#9bb4ff]" />
                       ) : null}
                     </div>
@@ -659,7 +861,8 @@ export default function CreateSchoolPage() {
             {step === "details" ? (
               <div className="skuully-glass-card rounded-[24px] p-5">
                 <h3 className="text-lg font-medium text-white">
-                  Relevant details for your {prettyInstitutionLabel(institutionType).toLowerCase()}
+                  Relevant details for your{" "}
+                  {prettyInstitutionLabel(institutionType).toLowerCase()}
                 </h3>
                 <p className="mt-1 text-sm leading-7 text-white/55">
                   Skuully adjusts these fields based on what you are building.
@@ -673,7 +876,10 @@ export default function CreateSchoolPage() {
                     <select
                       value={details.learningMode}
                       onChange={(event) =>
-                        setDetails((prev) => ({ ...prev, learningMode: event.target.value }))
+                        setDetails((prev) => ({
+                          ...prev,
+                          learningMode: event.target.value,
+                        }))
                       }
                       className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
                     >
@@ -693,7 +899,10 @@ export default function CreateSchoolPage() {
                     <select
                       value={details.ownership}
                       onChange={(event) =>
-                        setDetails((prev) => ({ ...prev, ownership: event.target.value }))
+                        setDetails((prev) => ({
+                          ...prev,
+                          ownership: event.target.value,
+                        }))
                       }
                       className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
                     >
@@ -713,7 +922,10 @@ export default function CreateSchoolPage() {
                     <select
                       value={details.levelType}
                       onChange={(event) =>
-                        setDetails((prev) => ({ ...prev, levelType: event.target.value }))
+                        setDetails((prev) => ({
+                          ...prev,
+                          levelType: event.target.value,
+                        }))
                       }
                       className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
                     >
@@ -749,7 +961,10 @@ export default function CreateSchoolPage() {
                 <div className="mt-5 grid gap-3">
                   <button
                     type="button"
-                    onClick={() => setAddPhoneLater(true)}
+                    onClick={() => {
+                      setAddPhoneLater(true);
+                      setPhoneError(null);
+                    }}
                     className={`rounded-[20px] border px-4 py-4 text-left transition ${
                       addPhoneLater
                         ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
@@ -798,13 +1013,62 @@ export default function CreateSchoolPage() {
                   </button>
 
                   {!addPhoneLater ? (
-                    <input
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
-                      value={phoneNumber}
-                      onChange={(event) => setPhoneNumber(event.target.value)}
-                      placeholder="Enter phone number"
-                      type="tel"
-                    />
+                    <div className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-[190px_1fr]">
+                        <div>
+                          <label className="mb-2 block text-sm text-white/70">
+                            Country
+                          </label>
+                          <select
+                            value={phoneCountryCode}
+                            onChange={(event) => {
+                              setPhoneCountryCode(event.target.value);
+                              setPhoneError(null);
+                            }}
+                            className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                          >
+                            {PHONE_COUNTRIES.map((item) => (
+                              <option key={item.code} value={item.code}>
+                                {item.flag} {item.name} ({item.dialCode})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm text-white/70">
+                            Phone number
+                          </label>
+                          <div className="flex overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
+                            <div className="flex items-center gap-2 border-r border-white/10 px-4 text-sm text-white/70">
+                              <span>{currentPhoneCountry.flag}</span>
+                              <span>{currentPhoneCountry.dialCode}</span>
+                            </div>
+
+                            <input
+                              className="skuully-focus-ring w-full bg-transparent px-4 py-4 text-white outline-none placeholder:text-white/25"
+                              value={phoneNumber}
+                              onChange={(event) =>
+                                handlePhoneChange(event.target.value)
+                              }
+                              placeholder="Enter phone number"
+                              inputMode="numeric"
+                              type="tel"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {phoneError ? (
+                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                          {phoneError}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
+                          Final number: {normalizedPhone}
+                        </div>
+                      )}
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -830,8 +1094,14 @@ export default function CreateSchoolPage() {
                     {selectedCountry?.name}
                   </p>
                   <p>
-                    <span className="text-white">Curriculum:</span>{" "}
-                    {setCurriculumLater ? "Will set later" : selectedCurriculum}
+                    <span className="text-white">
+                      {getAcademicLabel(institutionType)}:
+                    </span>{" "}
+                    {setAcademicLater
+                      ? "Will set later"
+                      : selectedAcademicItems.length
+                      ? selectedAcademicItems.join(", ")
+                      : "None selected"}
                   </p>
                   <p>
                     <span className="text-white">Learning mode:</span>{" "}
@@ -847,12 +1117,12 @@ export default function CreateSchoolPage() {
                   </p>
                   <p>
                     <span className="text-white">Verification phone:</span>{" "}
-                    {addPhoneLater ? "Will add later" : phoneNumber}
+                    {addPhoneLater ? "Will add later" : normalizedPhone}
                   </p>
                 </div>
 
                 <div className="mt-5 rounded-[20px] border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-white/52">
-                  Skuully will prepare your main workspace and initial academic structure from this setup.
+                  Skuully will prepare your main workspace and initial structure from this setup.
                 </div>
               </div>
             ) : null}
@@ -880,15 +1150,20 @@ export default function CreateSchoolPage() {
 
               <div className="mt-4 space-y-3 text-sm text-white/55">
                 <p>
-                  <span className="text-white">Step:</span> {step}
+                  <span className="text-white">Step:</span> {currentStep} of{" "}
+                  {totalSteps}
                 </p>
                 <p>
-                  <span className="text-white">Native curriculum:</span>{" "}
+                  <span className="text-white">Suggested default:</span>{" "}
                   {selectedCountry?.nativeCurriculum ?? "Not available"}
                 </p>
                 <p>
-                  <span className="text-white">Selected curriculum:</span>{" "}
-                  {setCurriculumLater ? "Later" : selectedCurriculum || "Pending"}
+                  <span className="text-white">Selected items:</span>{" "}
+                  {setAcademicLater
+                    ? "Later"
+                    : selectedAcademicItems.length
+                    ? selectedAcademicItems.join(", ")
+                    : "Pending"}
                 </p>
               </div>
             </div>
