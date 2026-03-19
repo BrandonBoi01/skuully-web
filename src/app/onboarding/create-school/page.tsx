@@ -14,12 +14,13 @@ import {
 } from "lucide-react";
 
 import { getMe } from "@/lib/auth";
+import { API_URL } from "@/lib/api";
+import { getGeoCountries, type GeoCountry } from "@/lib/geo";
 import {
   clearOnboardingState,
   readOnboardingState,
   type BuildInstitutionType,
 } from "@/lib/onboarding-flow";
-import { COUNTRIES, type CountryOption } from "@/lib/countries";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 
 type MeResponse = {
@@ -45,45 +46,11 @@ type InstitutionDetails = {
   levelType: string;
 };
 
-type PhoneCountry = {
-  code: string;
-  name: string;
-  flag: string;
-  dialCode: string;
-  min: number;
-  max: number;
-};
-
 type AcademicOption = {
   label: string;
   code?: string;
   category?: string;
 };
-
-const PHONE_COUNTRIES: PhoneCountry[] = [
-  { code: "KE", name: "Kenya", flag: "🇰🇪", dialCode: "+254", min: 9, max: 9 },
-  { code: "UG", name: "Uganda", flag: "🇺🇬", dialCode: "+256", min: 9, max: 9 },
-  { code: "TZ", name: "Tanzania", flag: "🇹🇿", dialCode: "+255", min: 9, max: 9 },
-  { code: "RW", name: "Rwanda", flag: "🇷🇼", dialCode: "+250", min: 9, max: 9 },
-  { code: "BI", name: "Burundi", flag: "🇧🇮", dialCode: "+257", min: 8, max: 8 },
-  { code: "ET", name: "Ethiopia", flag: "🇪🇹", dialCode: "+251", min: 9, max: 9 },
-  { code: "ZA", name: "South Africa", flag: "🇿🇦", dialCode: "+27", min: 9, max: 9 },
-  { code: "NG", name: "Nigeria", flag: "🇳🇬", dialCode: "+234", min: 10, max: 10 },
-  { code: "GH", name: "Ghana", flag: "🇬🇭", dialCode: "+233", min: 9, max: 9 },
-  { code: "CM", name: "Cameroon", flag: "🇨🇲", dialCode: "+237", min: 9, max: 9 },
-  { code: "US", name: "United States", flag: "🇺🇸", dialCode: "+1", min: 10, max: 10 },
-  { code: "CA", name: "Canada", flag: "🇨🇦", dialCode: "+1", min: 10, max: 10 },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧", dialCode: "+44", min: 10, max: 10 },
-  { code: "IN", name: "India", flag: "🇮🇳", dialCode: "+91", min: 10, max: 10 },
-  { code: "AE", name: "United Arab Emirates", flag: "🇦🇪", dialCode: "+971", min: 9, max: 9 },
-  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦", dialCode: "+966", min: 9, max: 9 },
-  { code: "EG", name: "Egypt", flag: "🇪🇬", dialCode: "+20", min: 10, max: 10 },
-  { code: "FR", name: "France", flag: "🇫🇷", dialCode: "+33", min: 9, max: 9 },
-  { code: "DE", name: "Germany", flag: "🇩🇪", dialCode: "+49", min: 10, max: 11 },
-  { code: "BR", name: "Brazil", flag: "🇧🇷", dialCode: "+55", min: 10, max: 11 },
-  { code: "AU", name: "Australia", flag: "🇦🇺", dialCode: "+61", min: 9, max: 9 },
-  { code: "NZ", name: "New Zealand", flag: "🇳🇿", dialCode: "+64", min: 8, max: 10 },
-];
 
 function prettyInstitutionLabel(type: BuildInstitutionType | null) {
   const labels: Record<BuildInstitutionType, string> = {
@@ -166,7 +133,7 @@ function getAcademicDescription(type: BuildInstitutionType | null) {
 
 function getAcademicOptions(
   type: BuildInstitutionType | null,
-  country: CountryOption | null
+  country: GeoCountry | null
 ): AcademicOption[] {
   const countryCode = country?.code;
 
@@ -178,34 +145,19 @@ function getAcademicOptions(
             { label: "8-4-4", code: "KE_844", category: "national_legacy" },
           ]
         : []),
-      ...(country?.nativeCurriculum
+      ...(country?.nativeCurriculumName
         ? [
             {
-              label: country.nativeCurriculum,
+              label: country.nativeCurriculumName,
+              code: country.nativeCurriculumCode ?? undefined,
               category: "national",
             },
           ]
         : []),
-      {
-        label: "Cambridge Curriculum",
-        code: "CAM_IGCSE",
-        category: "international",
-      },
-      {
-        label: "International Baccalaureate (IB)",
-        code: "IB",
-        category: "international",
-      },
-      {
-        label: "American Curriculum",
-        code: "US_GENERAL",
-        category: "international",
-      },
-      {
-        label: "British Curriculum",
-        code: "BRITISH",
-        category: "international",
-      },
+      { label: "Cambridge Curriculum", code: "CAM_IGCSE", category: "international" },
+      { label: "International Baccalaureate (IB)", code: "IB", category: "international" },
+      { label: "American Curriculum", code: "US_GENERAL", category: "international" },
+      { label: "British Curriculum", code: "BRITISH", category: "international" },
       { label: "CBSE", code: "CBSE", category: "international" },
       { label: "IGCSE", code: "IGCSE", category: "international" },
       { label: "Pearson Edexcel", code: "EDEXCEL", category: "international" },
@@ -280,50 +232,6 @@ function getInstitutionDetailOptions(type: BuildInstitutionType | null) {
         ownerships: ["Private", "Public"],
         levelTypes: ["Undergraduate", "Postgraduate", "Both"],
       };
-    case "polytechnic":
-      return {
-        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Public"],
-        levelTypes: ["Technical", "Diploma", "Mixed"],
-      };
-    case "vocational":
-      return {
-        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Public"],
-        levelTypes: ["Skills", "Certification", "Mixed"],
-      };
-    case "academy":
-      return {
-        learningModes: ["DAY", "BOARDING", "IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Independent"],
-        levelTypes: ["Specialized", "General", "Mixed"],
-      };
-    case "training_center":
-      return {
-        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Public"],
-        levelTypes: ["Professional", "Certification", "Mixed"],
-      };
     default:
       return {
         learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
@@ -372,13 +280,13 @@ function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function normalizeNationalPhone(country: PhoneCountry, value: string) {
+function normalizeNationalPhone(country: GeoCountry | null, value: string) {
   let digits = normalizeDigits(value);
   if (!digits) return digits;
 
-  const dialDigits = country.dialCode.replace("+", "");
+  const dialDigits = (country?.phoneCode ?? "").replace("+", "");
 
-  if (digits.startsWith(dialDigits)) {
+  if (dialDigits && digits.startsWith(dialDigits)) {
     digits = digits.slice(dialDigits.length);
   }
 
@@ -389,12 +297,14 @@ function normalizeNationalPhone(country: PhoneCountry, value: string) {
   return digits;
 }
 
-function validatePhone(country: PhoneCountry, value: string) {
+function validatePhone(country: GeoCountry | null, value: string) {
   const cleaned = normalizeNationalPhone(country, value);
+  const min = country?.phoneMinLength ?? 6;
+  const max = country?.phoneMaxLength ?? 15;
 
   if (!cleaned.length) return "Enter your phone number.";
-  if (cleaned.length < country.min) return "Phone number is too short for this country.";
-  if (cleaned.length > country.max) return "Phone number is too long for this country.";
+  if (cleaned.length < min) return "Phone number is too short for this country.";
+  if (cleaned.length > max) return "Phone number is too long for this country.";
 
   return null;
 }
@@ -406,21 +316,17 @@ export default function CreateSchoolPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [institutionType, setInstitutionType] =
-    useState<BuildInstitutionType | null>(null);
+  const [institutionType, setInstitutionType] = useState<BuildInstitutionType | null>(null);
   const [step, setStep] = useState<BuildStep>("identity");
 
+  const [countries, setCountries] = useState<GeoCountry[]>([]);
   const [schoolName, setSchoolName] = useState("");
   const [countrySearch, setCountrySearch] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState<CountryOption | null>(
-    null
-  );
+  const [selectedCountry, setSelectedCountry] = useState<GeoCountry | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [academicSearch, setAcademicSearch] = useState("");
-  const [selectedAcademicItems, setSelectedAcademicItems] = useState<
-    AcademicOption[]
-  >([]);
+  const [selectedAcademicItems, setSelectedAcademicItems] = useState<AcademicOption[]>([]);
   const [setAcademicLater, setSetAcademicLater] = useState(false);
 
   const [details, setDetails] = useState<InstitutionDetails>({
@@ -438,13 +344,15 @@ export default function CreateSchoolPage() {
   const [error, setError] = useState<string | null>(null);
 
   const currentPhoneCountry =
-    PHONE_COUNTRIES.find((item) => item.code === phoneCountryCode) ??
-    PHONE_COUNTRIES[0];
+    countries.find((item) => item.code === phoneCountryCode) ?? selectedCountry ?? null;
 
   useEffect(() => {
     async function load() {
       try {
-        const meResponse = await getMe();
+        const [meResponse, countriesResponse] = await Promise.all([
+          getMe(),
+          getGeoCountries(),
+        ]);
 
         if (!meResponse) {
           router.replace("/login");
@@ -469,10 +377,16 @@ export default function CreateSchoolPage() {
           return;
         }
 
+        const loadedCountries = countriesResponse.items ?? [];
+        setCountries(loadedCountries);
         setInstitutionType(buildType);
         setMe(meResponse);
 
-        const kenya = COUNTRIES.find((item) => item.code === "KE") ?? null;
+        const kenya =
+          loadedCountries.find((item) => item.code === "KE") ??
+          loadedCountries[0] ??
+          null;
+
         if (kenya) {
           setSelectedCountry(kenya);
           setCountrySearch(kenya.name);
@@ -503,15 +417,15 @@ export default function CreateSchoolPage() {
   const filteredCountries = useMemo(() => {
     const query = countrySearch.trim().toLowerCase();
 
-    if (!query) return COUNTRIES;
+    if (!query) return countries;
 
-    return COUNTRIES.filter(
+    return countries.filter(
       (item) =>
         item.name.toLowerCase().includes(query) ||
         item.code.toLowerCase().includes(query) ||
-        (item.nativeCurriculum ?? "").toLowerCase().includes(query)
+        (item.nativeCurriculumName ?? "").toLowerCase().includes(query)
     );
-  }, [countrySearch]);
+  }, [countrySearch, countries]);
 
   const academicOptions = useMemo(
     () => getAcademicOptions(institutionType, selectedCountry),
@@ -555,11 +469,8 @@ export default function CreateSchoolPage() {
   const securityReady =
     addPhoneLater || !validatePhone(currentPhoneCountry, phoneNumber);
 
-  const normalizedNationalPhone = normalizeNationalPhone(
-    currentPhoneCountry,
-    phoneNumber
-  );
-  const normalizedPhone = `${currentPhoneCountry.dialCode}${normalizedNationalPhone}`;
+  const normalizedNationalPhone = normalizeNationalPhone(currentPhoneCountry, phoneNumber);
+  const normalizedPhone = `${currentPhoneCountry?.phoneCode ?? ""}${normalizedNationalPhone}`;
 
   function isSelectedAcademicOption(option: AcademicOption) {
     return selectedAcademicItems.some(
@@ -635,10 +546,9 @@ export default function CreateSchoolPage() {
     setIsBusy(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
       const primaryAcademic = selectedAcademicItems[0];
 
-      const res = await fetch(`${apiUrl}/schools`, {
+      const res = await fetch(`${API_URL}/schools`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -669,8 +579,8 @@ export default function CreateSchoolPage() {
             phone: addPhoneLater
               ? null
               : {
-                  countryCode: currentPhoneCountry.code,
-                  dialCode: currentPhoneCountry.dialCode,
+                  countryCode: currentPhoneCountry?.code,
+                  dialCode: currentPhoneCountry?.phoneCode,
                   nationalNumber: normalizedNationalPhone,
                   e164: normalizedPhone,
                 },
@@ -714,12 +624,13 @@ export default function CreateSchoolPage() {
             { label: "CBC", code: "KE_CBC", category: "national" },
           ]);
         } else if (
-          selectedCountry?.nativeCurriculum &&
+          selectedCountry?.nativeCurriculumName &&
           (institutionType === "school" || institutionType === "academy")
         ) {
           setSelectedAcademicItems([
             {
-              label: selectedCountry.nativeCurriculum,
+              label: selectedCountry.nativeCurriculumName,
+              code: selectedCountry.nativeCurriculumCode ?? undefined,
               category: "national",
             },
           ]);
@@ -840,11 +751,7 @@ export default function CreateSchoolPage() {
         </div>
       }
     >
-      <form
-        id="create-school-form"
-        className="space-y-6"
-        onSubmit={handleCreate}
-      >
+      <form id="create-school-form" className="space-y-6" onSubmit={handleCreate}>
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             {step === "identity" ? (
@@ -863,13 +770,8 @@ export default function CreateSchoolPage() {
                   />
                 </div>
 
-                <div
-                  ref={pickerRef}
-                  className="skuully-glass-card rounded-[24px] p-5"
-                >
-                  <label className="mb-3 block text-sm text-white/70">
-                    Country
-                  </label>
+                <div ref={pickerRef} className="skuully-glass-card rounded-[24px] p-5">
+                  <label className="mb-3 block text-sm text-white/70">Country</label>
 
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
@@ -891,8 +793,7 @@ export default function CreateSchoolPage() {
                       <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-[20px] border border-white/10 bg-[#0a1022] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
                         {filteredCountries.length > 0 ? (
                           filteredCountries.map((country) => {
-                            const selected =
-                              selectedCountry?.code === country.code;
+                            const selected = selectedCountry?.code === country.code;
 
                             return (
                               <button
@@ -902,17 +803,9 @@ export default function CreateSchoolPage() {
                                   setSelectedCountry(country);
                                   setCountrySearch(country.name);
                                   setPickerOpen(false);
-
-                                  const matchedPhoneCountry =
-                                    PHONE_COUNTRIES.find(
-                                      (item) => item.code === country.code
-                                    );
-
-                                  if (matchedPhoneCountry) {
-                                    setPhoneCountryCode(matchedPhoneCountry.code);
-                                    setPhoneNumber("");
-                                    setPhoneError(null);
-                                  }
+                                  setPhoneCountryCode(country.code);
+                                  setPhoneNumber("");
+                                  setPhoneError(null);
                                 }}
                                 className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition ${
                                   selected
@@ -922,10 +815,11 @@ export default function CreateSchoolPage() {
                               >
                                 <div>
                                   <div className="text-sm font-medium text-white">
+                                    {country.flagEmoji ? `${country.flagEmoji} ` : ""}
                                     {country.name}
                                   </div>
                                   <div className="mt-1 text-xs text-white/45">
-                                    {country.nativeCurriculum ??
+                                    {country.nativeCurriculumName ??
                                       "No default academic suggestion"}
                                   </div>
                                 </div>
@@ -1199,9 +1093,7 @@ export default function CreateSchoolPage() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-sm font-medium text-white">
-                          Add later
-                        </div>
+                        <div className="text-sm font-medium text-white">Add later</div>
                         <div className="mt-1 text-sm text-white/52">
                           Skip phone verification for now
                         </div>
@@ -1224,9 +1116,7 @@ export default function CreateSchoolPage() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-sm font-medium text-white">
-                          Add phone now
-                        </div>
+                        <div className="text-sm font-medium text-white">Add phone now</div>
                         <div className="mt-1 text-sm text-white/52">
                           Use a verification number for future account protection
                         </div>
@@ -1254,9 +1144,10 @@ export default function CreateSchoolPage() {
                             }}
                             className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
                           >
-                            {PHONE_COUNTRIES.map((item) => (
+                            {countries.map((item) => (
                               <option key={item.code} value={item.code}>
-                                {item.flag} {item.name} ({item.dialCode})
+                                {item.flagEmoji ? `${item.flagEmoji} ` : ""}
+                                {item.name} ({item.phoneCode ?? "N/A"})
                               </option>
                             ))}
                           </select>
@@ -1268,16 +1159,14 @@ export default function CreateSchoolPage() {
                           </label>
                           <div className="flex overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
                             <div className="flex items-center gap-2 border-r border-white/10 px-4 text-sm text-white/70">
-                              <span>{currentPhoneCountry.flag}</span>
-                              <span>{currentPhoneCountry.dialCode}</span>
+                              <span>{currentPhoneCountry?.flagEmoji ?? "🌍"}</span>
+                              <span>{currentPhoneCountry?.phoneCode ?? ""}</span>
                             </div>
 
                             <input
                               className="skuully-focus-ring w-full bg-transparent px-4 py-4 text-white outline-none placeholder:text-white/25"
                               value={phoneNumber}
-                              onChange={(event) =>
-                                handlePhoneChange(event.target.value)
-                              }
+                              onChange={(event) => handlePhoneChange(event.target.value)}
                               placeholder="Enter phone number"
                               inputMode="numeric"
                               type="tel"
@@ -1303,9 +1192,7 @@ export default function CreateSchoolPage() {
 
             {step === "review" ? (
               <div className="skuully-glass-card rounded-[24px] p-5">
-                <h3 className="text-lg font-medium text-white">
-                  Review your workspace
-                </h3>
+                <h3 className="text-lg font-medium text-white">Review your workspace</h3>
 
                 <div className="mt-5 space-y-3 text-sm text-white/55">
                   <p>
@@ -1313,8 +1200,7 @@ export default function CreateSchoolPage() {
                     {prettyInstitutionLabel(institutionType)}
                   </p>
                   <p>
-                    <span className="text-white">Name:</span>{" "}
-                    {schoolName.trim()}
+                    <span className="text-white">Name:</span> {schoolName.trim()}
                   </p>
                   <p>
                     <span className="text-white">Country:</span>{" "}
@@ -1341,12 +1227,10 @@ export default function CreateSchoolPage() {
                     {prettyGenderPolicy(details.genderAdmissionPolicy)}
                   </p>
                   <p>
-                    <span className="text-white">Ownership:</span>{" "}
-                    {details.ownership}
+                    <span className="text-white">Ownership:</span> {details.ownership}
                   </p>
                   <p>
-                    <span className="text-white">Level type:</span>{" "}
-                    {details.levelType}
+                    <span className="text-white">Level type:</span> {details.levelType}
                   </p>
                   <p>
                     <span className="text-white">Verification phone:</span>{" "}
@@ -1367,10 +1251,7 @@ export default function CreateSchoolPage() {
               label="Institution type"
               value={prettyInstitutionLabel(institutionType)}
             />
-            <MiniInfo
-              label="Country"
-              value={selectedCountry?.name ?? "Pending"}
-            />
+            <MiniInfo label="Country" value={selectedCountry?.name ?? "Pending"} />
 
             <div className="skuully-glass-card rounded-[24px] p-5">
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
@@ -1383,12 +1264,11 @@ export default function CreateSchoolPage() {
 
               <div className="mt-4 space-y-3 text-sm text-white/55">
                 <p>
-                  <span className="text-white">Step:</span> {currentStep} of{" "}
-                  {totalSteps}
+                  <span className="text-white">Step:</span> {currentStep} of {totalSteps}
                 </p>
                 <p>
                   <span className="text-white">Suggested default:</span>{" "}
-                  {selectedCountry?.nativeCurriculum ?? "Not available"}
+                  {selectedCountry?.nativeCurriculumName ?? "Not available"}
                 </p>
                 <p>
                   <span className="text-white">Selected items:</span>{" "}
@@ -1412,9 +1292,7 @@ export default function CreateSchoolPage() {
                 <Globe2 className="h-4 w-4 text-white/72" />
               </div>
 
-              <h3 className="mt-4 text-lg font-medium text-white">
-                Smart setup
-              </h3>
+              <h3 className="mt-4 text-lg font-medium text-white">Smart setup</h3>
 
               <p className="mt-2 text-sm leading-7 text-white/55">
                 Skuully is using your institution type and country to shape the most relevant setup path for you.

@@ -1,6 +1,7 @@
 import { API_URL } from "@/lib/api";
 
 export type GeoCountry = {
+  id: string;
   code: string;
   iso3?: string | null;
   name: string;
@@ -18,33 +19,76 @@ export type GeoCountry = {
   nativeCurriculumCode?: string | null;
 };
 
-export async function getCountries(query?: string): Promise<GeoCountry[]> {
-  const url = new URL(`${API_URL}/geo/countries`);
-  if (query?.trim()) {
-    url.searchParams.set("q", query.trim());
-  }
+export type GeoSubdivision = {
+  id: string;
+  code?: string | null;
+  name: string;
+  type?: string | null;
+};
 
-  const res = await fetch(url.toString(), {
+export type GeoCity = {
+  id: string;
+  name: string;
+  subdivisionId?: string | null;
+};
+
+type CountriesResponse = {
+  items: GeoCountry[];
+};
+
+type SubdivisionsResponse = {
+  items: GeoSubdivision[];
+};
+
+type CitiesResponse = {
+  items: GeoCity[];
+};
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, {
     credentials: "include",
     cache: "no-store",
   });
 
   if (!res.ok) {
-    throw new Error("Failed to load countries");
+    const text = await res.text().catch(() => "");
+    throw new Error(text || "Request failed");
   }
 
-  return res.json();
+  return (await res.json()) as T;
 }
 
-export async function getCountryByCode(code: string) {
-  const res = await fetch(`${API_URL}/geo/countries/${code}`, {
-    credentials: "include",
-    cache: "no-store",
-  });
+export async function getGeoCountries(search?: string) {
+  const params = new URLSearchParams();
 
-  if (!res.ok) {
-    throw new Error("Failed to load country");
+  if (search?.trim()) {
+    params.set("search", search.trim());
   }
 
-  return res.json();
+  const query = params.toString();
+  return fetchJson<CountriesResponse>(
+    `${API_URL}/geo/countries${query ? `?${query}` : ""}`
+  );
+}
+
+export async function getGeoCountrySubdivisions(countryCode: string) {
+  return fetchJson<SubdivisionsResponse>(
+    `${API_URL}/geo/countries/${encodeURIComponent(countryCode)}/subdivisions`
+  );
+}
+
+export async function getGeoCountryCities(countryCode: string, subdivisionId?: string) {
+  const params = new URLSearchParams();
+
+  if (subdivisionId) {
+    params.set("subdivisionId", subdivisionId);
+  }
+
+  const query = params.toString();
+
+  return fetchJson<CitiesResponse>(
+    `${API_URL}/geo/countries/${encodeURIComponent(countryCode)}/cities${
+      query ? `?${query}` : ""
+    }`
+  );
 }
