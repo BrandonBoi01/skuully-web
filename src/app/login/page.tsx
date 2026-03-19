@@ -9,7 +9,7 @@ import { FloatingNotice } from "@/components/ui/floating-notice";
 import {
   finalizeLoginSession,
   getPendingVerificationEmail,
-  loginWithEmail,
+  loginWithIdentifier,
   setPendingResetEmail,
   setPendingVerificationEmail,
   markVerificationCodeSent,
@@ -18,12 +18,20 @@ import {
 function mapLoginError(message: string) {
   const text = message.toLowerCase();
 
-  if (text.includes("invalid email or password")) {
-    return "Email or password is incorrect.";
+  if (text.includes("invalid credentials")) {
+    return "Your email, phone, Skuully ID, or password is incorrect.";
   }
 
   if (text.includes("password must be longer than or equal to")) {
     return "Your password is too short.";
+  }
+
+  if (text.includes("request took too long")) {
+    return "The server took too long to respond. Please try again.";
+  }
+
+  if (text.includes("failed to fetch")) {
+    return "Could not reach the server. Check that your API is running.";
   }
 
   if (text.includes("session expired")) {
@@ -36,7 +44,9 @@ function mapLoginError(message: string) {
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState(getPendingVerificationEmail() ?? "");
+  const [identifier, setIdentifier] = useState(
+    getPendingVerificationEmail() ?? ""
+  );
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showForgot, setShowForgot] = useState(false);
@@ -56,13 +66,15 @@ export default function LoginPage() {
     setIsBusy(true);
 
     try {
-      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedIdentifier = identifier.trim().toLowerCase();
 
-      const login = await loginWithEmail(normalizedEmail, password);
+      const login = await loginWithIdentifier(normalizedIdentifier, password);
 
       if (!login.emailVerified || login.requiresEmailVerification) {
-        setPendingVerificationEmail(login.user.email);
-        markVerificationCodeSent();
+        if (login.user.email) {
+          setPendingVerificationEmail(login.user.email);
+          markVerificationCodeSent();
+        }
         setNotice("Your verification code is waiting in your email.");
         router.replace("/verify-email");
         return;
@@ -83,7 +95,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (me.context?.schoolId && me.context?.programId) {
+      if (me.context?.schoolId) {
         router.replace("/dashboard/control-center");
         return;
       }
@@ -100,16 +112,16 @@ export default function LoginPage() {
   }
 
   function handleForgotPassword() {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedIdentifier = identifier.trim().toLowerCase();
 
-    if (normalizedEmail) {
-      setPendingResetEmail(normalizedEmail);
+    if (normalizedIdentifier.includes("@")) {
+      setPendingResetEmail(normalizedIdentifier);
     }
 
     router.push(
-      `/forgot-password${
-        normalizedEmail ? `?email=${encodeURIComponent(normalizedEmail)}` : ""
-      }`
+      normalizedIdentifier.includes("@")
+        ? `/forgot-password?email=${encodeURIComponent(normalizedIdentifier)}`
+        : "/forgot-password"
     );
   }
 
@@ -129,14 +141,16 @@ export default function LoginPage() {
       >
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-2 block text-sm text-white/70">Email</label>
+            <label className="mb-2 block text-sm text-white/70">
+              Email, phone, or Skuully ID
+            </label>
             <input
               className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-white outline-none transition placeholder:text-white/25 focus:border-white/20 focus:bg-white/[0.05]"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
+              type="text"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="you@example.com / +2547... / brandon.ab12"
+              autoComplete="username"
               required
             />
           </div>

@@ -22,6 +22,7 @@ type RegisterResponse = {
     fullName: string;
     email: string;
     skuullyId?: string | null;
+    phone?: string | null;
   };
 };
 
@@ -29,9 +30,12 @@ export type MeResponse = {
   id: string;
   fullName: string;
   email: string;
+  phone?: string | null;
   skuullyId?: string | null;
   emailVerified?: boolean;
+  phoneVerified?: boolean;
   emailVerifiedAt?: string | null;
+  phoneVerifiedAt?: string | null;
   memberships?: Array<{
     role: string;
     status: string;
@@ -152,34 +156,50 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
       : {}),
   };
 
-  const res = await fetch(url, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 20000);
 
-  const text = await res.text();
+  try {
+    const res = await fetch(url, {
+      ...init,
+      headers,
+      credentials: "include",
+      signal: controller.signal,
+    });
 
-  if (!res.ok) {
-    let message = "Request failed";
+    const text = await res.text();
 
-    try {
-      const parsed = text ? JSON.parse(text) : null;
-      message =
-        Array.isArray(parsed?.message)
-          ? parsed.message[0]
-          : parsed?.message || text || message;
-    } catch {
-      message = text || message;
+    if (!res.ok) {
+      let message = "Request failed";
+
+      try {
+        const parsed = text ? JSON.parse(text) : null;
+        message =
+          Array.isArray(parsed?.message)
+            ? parsed.message[0]
+            : parsed?.message || text || message;
+      } catch {
+        message = text || message;
+      }
+
+      throw new Error(message);
     }
 
-    throw new Error(message);
+    return text ? (JSON.parse(text) as T) : ({} as T);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("The request took too long. Please try again.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
   }
-
-  return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
-export async function loginWithIdentifier(identifier: string, password: string) {
+export async function loginWithIdentifier(
+  identifier: string,
+  password: string
+) {
   return fetchJson<LoginResponse>(`${API_URL}/auth/login`, {
     method: "POST",
     headers: {
@@ -252,13 +272,17 @@ export async function logoutSession() {
 }
 
 export async function getMe(): Promise<MeResponse | null> {
-  const res = await fetch(`${API_URL}/auth/me`, {
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      credentials: "include",
+    });
 
-  if (!res.ok) return null;
+    if (!res.ok) return null;
 
-  return (await res.json()) as MeResponse;
+    return (await res.json()) as MeResponse;
+  } catch {
+    return null;
+  }
 }
 
 export async function finalizeLoginSession() {

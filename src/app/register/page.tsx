@@ -23,6 +23,14 @@ function mapRegisterError(message: string) {
     return "Enter a valid email address.";
   }
 
+  if (text.includes("request took too long")) {
+    return "The server took too long to respond. Please try again.";
+  }
+
+  if (text.includes("failed to fetch")) {
+    return "Could not reach the server. Check that your API is running.";
+  }
+
   return "We couldn’t create your account.";
 }
 
@@ -79,7 +87,7 @@ export default function RegisterPage() {
 
     try {
       const result = await registerWithEmail({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
