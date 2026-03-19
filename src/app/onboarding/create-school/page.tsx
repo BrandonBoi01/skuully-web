@@ -39,7 +39,8 @@ type MeResponse = {
 type BuildStep = "identity" | "academic" | "details" | "security" | "review";
 
 type InstitutionDetails = {
-  learningMode: string;
+  learningModes: string[];
+  genderAdmissionPolicy: string;
   ownership: string;
   levelType: string;
 };
@@ -185,10 +186,26 @@ function getAcademicOptions(
             },
           ]
         : []),
-      { label: "Cambridge Curriculum", code: "CAM_IGCSE", category: "international" },
-      { label: "International Baccalaureate (IB)", code: "IB", category: "international" },
-      { label: "American Curriculum", code: "US_GENERAL", category: "international" },
-      { label: "British Curriculum", code: "BRITISH", category: "international" },
+      {
+        label: "Cambridge Curriculum",
+        code: "CAM_IGCSE",
+        category: "international",
+      },
+      {
+        label: "International Baccalaureate (IB)",
+        code: "IB",
+        category: "international",
+      },
+      {
+        label: "American Curriculum",
+        code: "US_GENERAL",
+        category: "international",
+      },
+      {
+        label: "British Curriculum",
+        code: "BRITISH",
+        category: "international",
+      },
       { label: "CBSE", code: "CBSE", category: "international" },
       { label: "IGCSE", code: "IGCSE", category: "international" },
       { label: "Pearson Edexcel", code: "EDEXCEL", category: "international" },
@@ -232,52 +249,122 @@ function getInstitutionDetailOptions(type: BuildInstitutionType | null) {
   switch (type) {
     case "school":
       return {
-        learningModes: ["Day", "Boarding", "Mixed"],
+        learningModes: ["DAY", "BOARDING", "IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Public", "International"],
         levelTypes: ["Primary", "Secondary", "Combined"],
       };
     case "college":
       return {
-        learningModes: ["In-person", "Hybrid", "Mixed"],
+        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Public"],
         levelTypes: ["Certificate", "Diploma", "Mixed"],
       };
     case "university":
       return {
-        learningModes: ["In-person", "Hybrid", "Online"],
+        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Public"],
         levelTypes: ["Undergraduate", "Postgraduate", "Both"],
       };
     case "polytechnic":
       return {
-        learningModes: ["Practical", "Hybrid", "Workshop-led"],
+        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Public"],
         levelTypes: ["Technical", "Diploma", "Mixed"],
       };
     case "vocational":
       return {
-        learningModes: ["Hands-on", "Hybrid", "Workshop-led"],
+        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Public"],
         levelTypes: ["Skills", "Certification", "Mixed"],
       };
     case "academy":
       return {
-        learningModes: ["In-person", "Hybrid", "Online"],
+        learningModes: ["DAY", "BOARDING", "IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Independent"],
         levelTypes: ["Specialized", "General", "Mixed"],
       };
     case "training_center":
       return {
-        learningModes: ["In-person", "Hybrid", "Online"],
+        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Public"],
         levelTypes: ["Professional", "Certification", "Mixed"],
       };
     default:
       return {
-        learningModes: ["In-person", "Hybrid"],
+        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
+        genderAdmissionPolicies: [
+          { value: "BOYS_ONLY", label: "Boys only" },
+          { value: "GIRLS_ONLY", label: "Girls only" },
+          { value: "MIXED", label: "Mixed" },
+        ],
         ownerships: ["Private", "Public"],
         levelTypes: ["General"],
       };
+  }
+}
+
+function prettyLearningMode(value: string) {
+  switch (value) {
+    case "DAY":
+      return "Day";
+    case "BOARDING":
+      return "Boarding";
+    case "IN_PERSON":
+      return "In-person";
+    case "ONLINE":
+      return "Online";
+    case "HYBRID":
+      return "Hybrid";
+    default:
+      return value;
+  }
+}
+
+function prettyGenderPolicy(value: string) {
+  switch (value) {
+    case "BOYS_ONLY":
+      return "Boys only";
+    case "GIRLS_ONLY":
+      return "Girls only";
+    case "MIXED":
+      return "Mixed";
+    default:
+      return value;
   }
 }
 
@@ -319,20 +406,26 @@ export default function CreateSchoolPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [institutionType, setInstitutionType] = useState<BuildInstitutionType | null>(null);
+  const [institutionType, setInstitutionType] =
+    useState<BuildInstitutionType | null>(null);
   const [step, setStep] = useState<BuildStep>("identity");
 
   const [schoolName, setSchoolName] = useState("");
   const [countrySearch, setCountrySearch] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState<CountryOption | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<CountryOption | null>(
+    null
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [academicSearch, setAcademicSearch] = useState("");
-  const [selectedAcademicItems, setSelectedAcademicItems] = useState<AcademicOption[]>([]);
+  const [selectedAcademicItems, setSelectedAcademicItems] = useState<
+    AcademicOption[]
+  >([]);
   const [setAcademicLater, setSetAcademicLater] = useState(false);
 
   const [details, setDetails] = useState<InstitutionDetails>({
-    learningMode: "",
+    learningModes: [],
+    genderAdmissionPolicy: "MIXED",
     ownership: "",
     levelType: "",
   });
@@ -455,7 +548,10 @@ export default function CreateSchoolPage() {
   const identityReady = schoolName.trim().length >= 2 && !!selectedCountry;
   const academicReady = setAcademicLater || selectedAcademicItems.length > 0;
   const detailsReady =
-    !!details.learningMode && !!details.ownership && !!details.levelType;
+    details.learningModes.length > 0 &&
+    !!details.ownership &&
+    !!details.levelType &&
+    !!details.genderAdmissionPolicy;
   const securityReady =
     addPhoneLater || !validatePhone(currentPhoneCountry, phoneNumber);
 
@@ -494,6 +590,19 @@ export default function CreateSchoolPage() {
       }
 
       return [...prev, option];
+    });
+  }
+
+  function toggleLearningMode(mode: string) {
+    setDetails((prev) => {
+      const exists = prev.learningModes.includes(mode);
+
+      return {
+        ...prev,
+        learningModes: exists
+          ? prev.learningModes.filter((item) => item !== mode)
+          : [...prev.learningModes, mode],
+      };
     });
   }
 
@@ -550,7 +659,8 @@ export default function CreateSchoolPage() {
             setUpLater: setAcademicLater,
           },
           institutionProfile: {
-            learningMode: details.learningMode,
+            learningModes: details.learningModes,
+            genderAdmissionPolicy: details.genderAdmissionPolicy,
             ownership: details.ownership,
             levelType: details.levelType,
           },
@@ -955,22 +1065,54 @@ export default function CreateSchoolPage() {
                 <div className="mt-5 grid gap-4">
                   <div>
                     <label className="mb-2 block text-sm text-white/70">
-                      Learning mode
+                      Learning modes
+                    </label>
+
+                    <div className="grid gap-2">
+                      {detailOptions.learningModes.map((option) => {
+                        const selected = details.learningModes.includes(option);
+
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => toggleLearningMode(option)}
+                            className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+                              selected
+                                ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
+                                : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                            }`}
+                          >
+                            <span className="text-sm text-white">
+                              {prettyLearningMode(option)}
+                            </span>
+                            {selected ? (
+                              <Check className="h-4 w-4 text-[#9bb4ff]" />
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-white/70">
+                      Admission policy
                     </label>
                     <select
-                      value={details.learningMode}
+                      value={details.genderAdmissionPolicy}
                       onChange={(event) =>
                         setDetails((prev) => ({
                           ...prev,
-                          learningMode: event.target.value,
+                          genderAdmissionPolicy: event.target.value,
                         }))
                       }
                       className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
                     >
-                      <option value="">Select learning mode</option>
-                      {detailOptions.learningModes.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
+                      <option value="">Select admission policy</option>
+                      {detailOptions.genderAdmissionPolicies.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
                         </option>
                       ))}
                     </select>
@@ -1189,8 +1331,14 @@ export default function CreateSchoolPage() {
                       : "None selected"}
                   </p>
                   <p>
-                    <span className="text-white">Learning mode:</span>{" "}
-                    {details.learningMode}
+                    <span className="text-white">Learning modes:</span>{" "}
+                    {details.learningModes.length
+                      ? details.learningModes.map(prettyLearningMode).join(", ")
+                      : "None selected"}
+                  </p>
+                  <p>
+                    <span className="text-white">Admission policy:</span>{" "}
+                    {prettyGenderPolicy(details.genderAdmissionPolicy)}
                   </p>
                   <p>
                     <span className="text-white">Ownership:</span>{" "}
@@ -1248,6 +1396,12 @@ export default function CreateSchoolPage() {
                     ? "Later"
                     : selectedAcademicItems.length
                     ? selectedAcademicItems.map((item) => item.label).join(", ")
+                    : "Pending"}
+                </p>
+                <p>
+                  <span className="text-white">Learning modes:</span>{" "}
+                  {details.learningModes.length
+                    ? details.learningModes.map(prettyLearningMode).join(", ")
                     : "Pending"}
                 </p>
               </div>
