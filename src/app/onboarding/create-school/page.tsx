@@ -14,8 +14,15 @@ import {
 } from "lucide-react";
 
 import { getMe } from "@/lib/auth";
-import { API_URL } from "@/lib/api";
 import { getGeoCountries, type GeoCountry } from "@/lib/geo";
+import {
+  saveBuildAcademic,
+  saveBuildDetails,
+  saveBuildIdentity,
+  sendPhoneCode,
+  verifyPhoneCode,
+  skipPhoneStep,
+} from "@/lib/onboarding-api";
 import {
   clearOnboardingState,
   readOnboardingState,
@@ -315,6 +322,9 @@ export default function CreateSchoolPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+
   const [me, setMe] = useState<MeResponse | null>(null);
   const [institutionType, setInstitutionType] = useState<BuildInstitutionType | null>(null);
   const [step, setStep] = useState<BuildStep>("identity");
@@ -340,6 +350,10 @@ export default function CreateSchoolPage() {
   const [phoneCountryCode, setPhoneCountryCode] = useState("KE");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneNotice, setPhoneNotice] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -466,11 +480,13 @@ export default function CreateSchoolPage() {
     !!details.ownership &&
     !!details.levelType &&
     !!details.genderAdmissionPolicy;
-  const securityReady =
-    addPhoneLater || !validatePhone(currentPhoneCountry, phoneNumber);
 
   const normalizedNationalPhone = normalizeNationalPhone(currentPhoneCountry, phoneNumber);
   const normalizedPhone = `${currentPhoneCountry?.phoneCode ?? ""}${normalizedNationalPhone}`;
+
+  const securityReady = addPhoneLater
+    ? true
+    : !validatePhone(currentPhoneCountry, phoneNumber) && phoneVerified;
 
   function isSelectedAcademicOption(option: AcademicOption) {
     return selectedAcademicItems.some(
@@ -517,10 +533,85 @@ export default function CreateSchoolPage() {
     });
   }
 
+  function resetPhoneVerificationState() {
+    setPhoneVerified(false);
+    setPhoneCodeSent(false);
+    setVerificationCode("");
+    setPhoneNotice(null);
+  }
+
   function handlePhoneChange(value: string) {
     const cleaned = normalizeNationalPhone(currentPhoneCountry, value);
     setPhoneNumber(cleaned);
     setPhoneError(validatePhone(currentPhoneCountry, cleaned));
+    resetPhoneVerificationState();
+  }
+
+  async function handleSendPhoneCode() {
+    setError(null);
+    setPhoneNotice(null);
+
+    const validationError = validatePhone(currentPhoneCountry, phoneNumber);
+    setPhoneError(validationError);
+
+    if (validationError) {
+      return;
+    }
+
+    if (!currentPhoneCountry?.code || !currentPhoneCountry?.phoneCode) {
+      setError("Phone country information is incomplete.");
+      return;
+    }
+
+    try {
+      setIsSendingCode(true);
+
+      await sendPhoneCode({
+        countryCode: currentPhoneCountry.code,
+        dialCode: currentPhoneCountry.phoneCode,
+        nationalNumber: normalizedNationalPhone,
+        e164: normalizedPhone,
+      });
+
+      setPhoneCodeSent(true);
+      setPhoneVerified(false);
+      setPhoneNotice(`Verification code sent to ${normalizedPhone}`);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not send verification code."
+      );
+    } finally {
+      setIsSendingCode(false);
+    }
+  }
+
+  async function handleVerifyPhoneCode() {
+    setError(null);
+    setPhoneNotice(null);
+
+    if (!verificationCode.trim()) {
+      setError("Enter the verification code.");
+      return;
+    }
+
+    try {
+      setIsVerifyingCode(true);
+
+      await verifyPhoneCode({
+        e164: normalizedPhone,
+        code: verificationCode.trim(),
+      });
+
+      setPhoneVerified(true);
+      setPhoneNotice("Phone number verified successfully.");
+    } catch (err) {
+      setPhoneVerified(false);
+      setError(
+        err instanceof Error ? err.message : "Could not verify phone number."
+      );
+    } finally {
+      setIsVerifyingCode(false);
+    }
   }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
@@ -532,71 +623,42 @@ export default function CreateSchoolPage() {
       return;
     }
 
-    if (!addPhoneLater) {
-      const validationError = validatePhone(currentPhoneCountry, phoneNumber);
-      setPhoneError(validationError);
-
-      if (validationError) {
-        setError(validationError);
-        setStep("security");
-        return;
-      }
+    if (!addPhoneLater && !phoneVerified) {
+      setError("Verify your phone number before creating the workspace.");
+      setStep("security");
+      return;
     }
 
     setIsBusy(true);
 
     try {
-      const primaryAcademic = selectedAcademicItems[0];
-
-      const res = await fetch(`${API_URL}/schools`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          name: schoolName.trim(),
-          country: selectedCountry.name,
-          countryCode: selectedCountry.code,
-          institutionType: mapInstitutionTypeForApi(institutionType),
-          organizationName: schoolName.trim(),
-          branchName: "Main Campus",
-          curriculumName: setAcademicLater ? undefined : primaryAcademic?.label,
-          curriculumCode: setAcademicLater ? undefined : primaryAcademic?.code,
-          academicSetup: {
-            label: getAcademicLabel(institutionType),
-            selectedItems: selectedAcademicItems.map((item) => item.label),
-            setUpLater: setAcademicLater,
-          },
-          institutionProfile: {
-            learningModes: details.learningModes,
-            genderAdmissionPolicy: details.genderAdmissionPolicy,
-            ownership: details.ownership,
-            levelType: details.levelType,
-          },
-          security: {
-            addPhoneLater,
-            phone: addPhoneLater
-              ? null
-              : {
-                  countryCode: currentPhoneCountry?.code,
-                  dialCode: currentPhoneCountry?.phoneCode,
-                  nationalNumber: normalizedNationalPhone,
-                  e164: normalizedPhone,
-                },
-          },
-        }),
+      await saveBuildIdentity({
+        institutionType: mapInstitutionTypeForApi(institutionType),
+        institutionName: schoolName.trim(),
+        country: selectedCountry.name,
+        countryCode: selectedCountry.code,
       });
 
-      const payload = await res.json().catch(() => null);
+      await saveBuildAcademic({
+        label: getAcademicLabel(institutionType),
+        selectedItems: selectedAcademicItems.map((item) => item.label),
+        setUpLater: setAcademicLater,
+      });
 
-      if (!res.ok) {
-        throw new Error(
-          Array.isArray(payload?.message)
-            ? payload.message[0]
-            : payload?.message || "We couldn’t create your workspace yet."
-        );
+      await saveBuildDetails({
+        learningModes: details.learningModes,
+        genderAdmissionPolicy: details.genderAdmissionPolicy,
+        ownership: details.ownership,
+        levelType: details.levelType,
+      });
+
+      if (addPhoneLater) {
+        await skipPhoneStep();
       }
+
+      const res = await fetch("/api/complete-build-placeholder", { method: "POST" }).catch(
+        () => null
+      );
 
       clearOnboardingState();
       router.push("/dashboard/control-center");
@@ -611,7 +673,7 @@ export default function CreateSchoolPage() {
     }
   }
 
-  function goNext() {
+  async function goNext() {
     setError(null);
 
     if (step === "identity" && identityReady) {
@@ -637,29 +699,74 @@ export default function CreateSchoolPage() {
         }
       }
 
-      setStep("academic");
+      try {
+        await saveBuildIdentity({
+          institutionType: mapInstitutionTypeForApi(institutionType),
+          institutionName: schoolName.trim(),
+          country: selectedCountry.name,
+          countryCode: selectedCountry.code,
+        });
+
+        setStep("academic");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not save this step.");
+      }
       return;
     }
 
     if (step === "academic" && academicReady) {
-      setStep("details");
+      try {
+        await saveBuildAcademic({
+          label: getAcademicLabel(institutionType),
+          selectedItems: selectedAcademicItems.map((item) => item.label),
+          setUpLater: setAcademicLater,
+        });
+
+        setStep("details");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not save this step.");
+      }
       return;
     }
 
     if (step === "details" && detailsReady) {
-      setStep("security");
+      try {
+        await saveBuildDetails({
+          learningModes: details.learningModes,
+          genderAdmissionPolicy: details.genderAdmissionPolicy,
+          ownership: details.ownership,
+          levelType: details.levelType,
+        });
+
+        setStep("security");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not save this step.");
+      }
       return;
     }
 
     if (step === "security") {
-      if (!addPhoneLater) {
-        const validationError = validatePhone(currentPhoneCountry, phoneNumber);
-        setPhoneError(validationError);
-
-        if (validationError) {
-          setError(validationError);
-          return;
+      if (addPhoneLater) {
+        try {
+          await skipPhoneStep();
+          setStep("review");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not save this step.");
         }
+        return;
+      }
+
+      const validationError = validatePhone(currentPhoneCountry, phoneNumber);
+      setPhoneError(validationError);
+
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+
+      if (!phoneVerified) {
+        setError("Verify your phone number before continuing.");
+        return;
       }
 
       setStep("review");
@@ -727,10 +834,12 @@ export default function CreateSchoolPage() {
               type="button"
               onClick={goNext}
               disabled={
+                isSendingCode ||
+                isVerifyingCode ||
                 (step === "identity" && !identityReady) ||
                 (step === "academic" && !academicReady) ||
                 (step === "details" && !detailsReady) ||
-                (step === "security" && !securityReady)
+                (step === "security" && !securityReady && !addPhoneLater)
               }
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -806,6 +915,7 @@ export default function CreateSchoolPage() {
                                   setPhoneCountryCode(country.code);
                                   setPhoneNumber("");
                                   setPhoneError(null);
+                                  resetPhoneVerificationState();
                                 }}
                                 className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition ${
                                   selected
@@ -1084,6 +1194,7 @@ export default function CreateSchoolPage() {
                     onClick={() => {
                       setAddPhoneLater(true);
                       setPhoneError(null);
+                      resetPhoneVerificationState();
                     }}
                     className={`rounded-[20px] border px-4 py-4 text-left transition ${
                       addPhoneLater
@@ -1107,7 +1218,10 @@ export default function CreateSchoolPage() {
 
                   <button
                     type="button"
-                    onClick={() => setAddPhoneLater(false)}
+                    onClick={() => {
+                      setAddPhoneLater(false);
+                      resetPhoneVerificationState();
+                    }}
                     className={`rounded-[20px] border px-4 py-4 text-left transition ${
                       !addPhoneLater
                         ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
@@ -1141,6 +1255,7 @@ export default function CreateSchoolPage() {
                               setPhoneCountryCode(event.target.value);
                               setPhoneError(null);
                               setPhoneNumber("");
+                              resetPhoneVerificationState();
                             }}
                             className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
                           >
@@ -1175,15 +1290,61 @@ export default function CreateSchoolPage() {
                         </div>
                       </div>
 
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={handleSendPhoneCode}
+                          disabled={isSendingCode}
+                          className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+                        >
+                          {isSendingCode ? "Sending..." : "Send code"}
+                        </button>
+
+                        {phoneVerified ? (
+                          <div className="flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200">
+                            Verified
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {phoneCodeSent ? (
+                        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                          <input
+                            className="skuully-focus-ring rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
+                            value={verificationCode}
+                            onChange={(event) => setVerificationCode(event.target.value)}
+                            placeholder="Enter verification code"
+                            inputMode="numeric"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={handleVerifyPhoneCode}
+                            disabled={isVerifyingCode}
+                            className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black disabled:opacity-50"
+                          >
+                            {isVerifyingCode ? "Verifying..." : "Verify code"}
+                          </button>
+                        </div>
+                      ) : null}
+
                       {phoneError ? (
                         <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
                           {phoneError}
                         </div>
-                      ) : (
+                      ) : null}
+
+                      {phoneNotice ? (
+                        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+                          {phoneNotice}
+                        </div>
+                      ) : null}
+
+                      {!phoneError ? (
                         <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
                           Final number: {normalizedPhone}
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -1276,12 +1437,6 @@ export default function CreateSchoolPage() {
                     ? "Later"
                     : selectedAcademicItems.length
                     ? selectedAcademicItems.map((item) => item.label).join(", ")
-                    : "Pending"}
-                </p>
-                <p>
-                  <span className="text-white">Learning modes:</span>{" "}
-                  {details.learningModes.length
-                    ? details.learningModes.map(prettyLearningMode).join(", ")
                     : "Pending"}
                 </p>
               </div>
