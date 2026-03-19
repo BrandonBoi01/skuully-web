@@ -3,10 +3,12 @@ import { API_URL } from "@/lib/api";
 type LoginResponse = {
   requiresEmailVerification?: boolean;
   emailVerified?: boolean;
+  phoneVerified?: boolean;
   user: {
     id: string;
     fullName: string;
     email: string;
+    phone?: string | null;
     skuullyId?: string | null;
   };
 };
@@ -177,13 +179,13 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
-export async function loginWithEmail(email: string, password: string) {
+export async function loginWithEmail(identifier: string, password: string) {
   return fetchJson<LoginResponse>(`${API_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ identifier, password }),
   });
 }
 
