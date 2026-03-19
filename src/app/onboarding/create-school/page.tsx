@@ -53,6 +53,12 @@ type PhoneCountry = {
   max: number;
 };
 
+type AcademicOption = {
+  label: string;
+  code?: string;
+  category?: string;
+};
+
 const PHONE_COUNTRIES: PhoneCountry[] = [
   { code: "KE", name: "Kenya", flag: "🇰🇪", dialCode: "+254", min: 9, max: 9 },
   { code: "UG", name: "Uganda", flag: "🇺🇬", dialCode: "+256", min: 9, max: 9 },
@@ -147,11 +153,11 @@ function getAcademicDescription(type: BuildInstitutionType | null) {
       return "Choose one or more curricula for your institution, or set them up later.";
     case "college":
     case "university":
-      return "Choose the academic structures your institution will follow, or leave this for later.";
+      return "Choose one or more academic frameworks, or leave them for later.";
     case "polytechnic":
     case "vocational":
     case "training_center":
-      return "Choose the training or certification structures that best fit your institution.";
+      return "Choose one or more training frameworks, or set them up later.";
     default:
       return "Choose the structure that best fits your institution.";
   }
@@ -160,47 +166,65 @@ function getAcademicDescription(type: BuildInstitutionType | null) {
 function getAcademicOptions(
   type: BuildInstitutionType | null,
   country: CountryOption | null
-) {
+): AcademicOption[] {
   const countryCode = country?.code;
 
   if (type === "school" || type === "academy") {
-    const options = [
-      ...(countryCode === "KE" ? ["CBC", "8-4-4"] : []),
-      ...(country?.nativeCurriculum ? [country.nativeCurriculum] : []),
-      "Cambridge Curriculum",
-      "International Baccalaureate (IB)",
-      "American Curriculum",
-      "British Curriculum",
-      "CBSE",
-      "IGCSE",
-      "Pearson Edexcel",
-      "Montessori",
-      "Waldorf",
+    const options: AcademicOption[] = [
+      ...(countryCode === "KE"
+        ? [
+            { label: "CBC", code: "KE_CBC", category: "national" },
+            { label: "8-4-4", code: "KE_844", category: "national_legacy" },
+          ]
+        : []),
+      ...(country?.nativeCurriculum
+        ? [
+            {
+              label: country.nativeCurriculum,
+              category: "national",
+            },
+          ]
+        : []),
+      { label: "Cambridge Curriculum", code: "CAM_IGCSE", category: "international" },
+      { label: "International Baccalaureate (IB)", code: "IB", category: "international" },
+      { label: "American Curriculum", code: "US_GENERAL", category: "international" },
+      { label: "British Curriculum", code: "BRITISH", category: "international" },
+      { label: "CBSE", code: "CBSE", category: "international" },
+      { label: "IGCSE", code: "IGCSE", category: "international" },
+      { label: "Pearson Edexcel", code: "EDEXCEL", category: "international" },
+      { label: "Montessori", code: "MONTESSORI", category: "alternative" },
+      { label: "Waldorf", code: "WALDORF", category: "alternative" },
     ];
 
-    return options.filter((value, index, array) => array.indexOf(value) === index);
+    return options.filter(
+      (item, index, array) =>
+        array.findIndex(
+          (candidate) =>
+            candidate.label.toLowerCase() === item.label.toLowerCase()
+        ) === index
+    );
   }
 
   if (type === "college" || type === "university") {
     return [
-      "Semester-based",
-      "Trimester-based",
-      "Modular",
-      "Credit-hour system",
-      "Competency-based",
-      "Outcome-based",
-      "Research-led",
+      { label: "Semester-based", category: "academic_framework" },
+      { label: "Trimester-based", category: "academic_framework" },
+      { label: "Modular", category: "academic_framework" },
+      { label: "Credit-hour system", category: "academic_framework" },
+      { label: "Competency-based", category: "academic_framework" },
+      { label: "Outcome-based", category: "academic_framework" },
+      { label: "Research-led", category: "academic_framework" },
     ];
   }
 
   return [
-    "Certification-based",
-    "Competency-based",
-    "Module-based",
-    "Workshop-led",
-    "Apprenticeship-aligned",
-    "Industry-aligned",
-    "Outcome-based",
+    { label: "Certification-based", category: "training_framework" },
+    { label: "Competency-based", category: "training_framework" },
+    { label: "Module-based", category: "training_framework" },
+    { label: "Workshop-led", category: "training_framework" },
+    { label: "Apprenticeship-aligned", category: "training_framework" },
+    { label: "Industry-aligned", category: "training_framework" },
+    { label: "Outcome-based", category: "training_framework" },
   ];
 }
 
@@ -261,8 +285,26 @@ function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
+function normalizeNationalPhone(country: PhoneCountry, value: string) {
+  let digits = normalizeDigits(value);
+
+  if (!digits) return digits;
+
+  const dialDigits = country.dialCode.replace("+", "");
+
+  if (digits.startsWith(dialDigits)) {
+    digits = digits.slice(dialDigits.length);
+  }
+
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  return digits;
+}
+
 function validatePhone(country: PhoneCountry, value: string) {
-  const cleaned = normalizeDigits(value);
+  const cleaned = normalizeNationalPhone(country, value);
 
   if (!cleaned.length) return "Enter your phone number.";
   if (cleaned.length < country.min) return "Phone number is too short for this country.";
@@ -287,7 +329,7 @@ export default function CreateSchoolPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [academicSearch, setAcademicSearch] = useState("");
-  const [selectedAcademicItems, setSelectedAcademicItems] = useState<string[]>([]);
+  const [selectedAcademicItems, setSelectedAcademicItems] = useState<AcademicOption[]>([]);
   const [setAcademicLater, setSetAcademicLater] = useState(false);
 
   const [details, setDetails] = useState<InstitutionDetails>({
@@ -322,7 +364,7 @@ export default function CreateSchoolPage() {
           return;
         }
 
-        if (meResponse.context?.schoolId && meResponse.context?.programId) {
+        if (meResponse.context?.schoolId) {
           router.replace("/dashboard/control-center");
           return;
         }
@@ -339,9 +381,11 @@ export default function CreateSchoolPage() {
         setMe(meResponse);
 
         const kenya = COUNTRIES.find((item) => item.code === "KE") ?? null;
-        setSelectedCountry(kenya);
-        setCountrySearch(kenya?.name ?? "");
-        setPhoneCountryCode(kenya?.code ?? "KE");
+        if (kenya) {
+          setSelectedCountry(kenya);
+          setCountrySearch(kenya.name);
+          setPhoneCountryCode(kenya.code);
+        }
 
         setIsLoading(false);
       } catch {
@@ -366,6 +410,7 @@ export default function CreateSchoolPage() {
 
   const filteredCountries = useMemo(() => {
     const query = countrySearch.trim().toLowerCase();
+
     if (!query) return COUNTRIES;
 
     return COUNTRIES.filter(
@@ -383,10 +428,11 @@ export default function CreateSchoolPage() {
 
   const filteredAcademicOptions = useMemo(() => {
     const query = academicSearch.trim().toLowerCase();
+
     if (!query) return academicOptions;
 
     return academicOptions.filter((item) =>
-      item.toLowerCase().includes(query)
+      item.label.toLowerCase().includes(query)
     );
   }, [academicSearch, academicOptions]);
 
@@ -414,21 +460,38 @@ export default function CreateSchoolPage() {
   const securityReady =
     addPhoneLater || !validatePhone(currentPhoneCountry, phoneNumber);
 
-  const normalizedPhone = `${currentPhoneCountry.dialCode}${normalizeDigits(
+  const normalizedNationalPhone = normalizeNationalPhone(
+    currentPhoneCountry,
     phoneNumber
-  )}`;
+  );
+  const normalizedPhone = `${currentPhoneCountry.dialCode}${normalizedNationalPhone}`;
 
-  function toggleAcademicItem(value: string) {
+  function toggleAcademicItem(option: AcademicOption) {
     setSetAcademicLater(false);
-    setSelectedAcademicItems((prev) =>
-      prev.includes(value)
-        ? prev.filter((item) => item !== value)
-        : [...prev, value]
-    );
+
+    setSelectedAcademicItems((prev) => {
+      const exists = prev.some(
+        (item) =>
+          item.label.toLowerCase() === option.label.toLowerCase() &&
+          (item.code ?? "") === (option.code ?? "")
+      );
+
+      if (exists) {
+        return prev.filter(
+          (item) =>
+            !(
+              item.label.toLowerCase() === option.label.toLowerCase() &&
+              (item.code ?? "") === (option.code ?? "")
+            )
+        );
+      }
+
+      return [...prev, option];
+    });
   }
 
   function handlePhoneChange(value: string) {
-    const cleaned = normalizeDigits(value);
+    const cleaned = normalizeNationalPhone(currentPhoneCountry, value);
     setPhoneNumber(cleaned);
     setPhoneError(validatePhone(currentPhoneCountry, cleaned));
   }
@@ -445,6 +508,7 @@ export default function CreateSchoolPage() {
     if (!addPhoneLater) {
       const validationError = validatePhone(currentPhoneCountry, phoneNumber);
       setPhoneError(validationError);
+
       if (validationError) {
         setError(validationError);
         setStep("security");
@@ -456,6 +520,8 @@ export default function CreateSchoolPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+      const primaryAcademic = selectedAcademicItems[0];
 
       const res = await fetch(`${apiUrl}/schools`, {
         method: "POST",
@@ -470,9 +536,11 @@ export default function CreateSchoolPage() {
           institutionType: mapInstitutionTypeForApi(institutionType),
           organizationName: schoolName.trim(),
           branchName: "Main Campus",
+          curriculumName: setAcademicLater ? undefined : primaryAcademic?.label,
+          curriculumCode: setAcademicLater ? undefined : primaryAcademic?.code,
           academicSetup: {
             label: getAcademicLabel(institutionType),
-            selectedItems: selectedAcademicItems,
+            selectedItems: selectedAcademicItems.map((item) => item.label),
             setUpLater: setAcademicLater,
           },
           institutionProfile: {
@@ -487,7 +555,7 @@ export default function CreateSchoolPage() {
               : {
                   countryCode: currentPhoneCountry.code,
                   dialCode: currentPhoneCountry.dialCode,
-                  nationalNumber: normalizeDigits(phoneNumber),
+                  nationalNumber: normalizedNationalPhone,
                   e164: normalizedPhone,
                 },
           },
@@ -526,12 +594,19 @@ export default function CreateSchoolPage() {
           selectedCountry?.code === "KE" &&
           (institutionType === "school" || institutionType === "academy")
         ) {
-          setSelectedAcademicItems(["CBC"]);
+          setSelectedAcademicItems([
+            { label: "CBC", code: "KE_CBC", category: "national" },
+          ]);
         } else if (
           selectedCountry?.nativeCurriculum &&
           (institutionType === "school" || institutionType === "academy")
         ) {
-          setSelectedAcademicItems([selectedCountry.nativeCurriculum]);
+          setSelectedAcademicItems([
+            {
+              label: selectedCountry.nativeCurriculum,
+              category: "national",
+            },
+          ]);
         }
       }
 
@@ -553,6 +628,7 @@ export default function CreateSchoolPage() {
       if (!addPhoneLater) {
         const validationError = validatePhone(currentPhoneCountry, phoneNumber);
         setPhoneError(validationError);
+
         if (validationError) {
           setError(validationError);
           return;
@@ -586,9 +662,7 @@ export default function CreateSchoolPage() {
       return;
     }
 
-    if (step === "review") {
-      setStep("security");
-    }
+    setStep("security");
   }
 
   if (isLoading) {
@@ -650,546 +724,554 @@ export default function CreateSchoolPage() {
         </div>
       }
     >
-      <form
-        id="create-school-form"
-        className="space-y-6"
-        onSubmit={handleCreate}
-      >
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            {step === "identity" ? (
-              <>
-                <div className="skuully-glass-card rounded-[24px] p-5">
-                  <label className="mb-3 block text-sm text-white/70">
-                    {prettyInstitutionLabel(institutionType)} name
-                  </label>
-
-                  <input
-                    className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
-                    value={schoolName}
-                    onChange={(event) => setSchoolName(event.target.value)}
-                    placeholder={suggestedPlaceholder(institutionType)}
-                    required
-                  />
-                </div>
-
-                <div
-                  ref={pickerRef}
-                  className="skuully-glass-card rounded-[24px] p-5"
-                >
-                  <label className="mb-3 block text-sm text-white/70">
-                    Country
-                  </label>
-
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+        <form
+          id="create-school-form"
+          className="space-y-6"
+          onSubmit={handleCreate}
+        >
+          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-6">
+              {step === "identity" ? (
+                <>
+                  <div className="skuully-glass-card rounded-[24px] p-5">
+                    <label className="mb-3 block text-sm text-white/70">
+                      {prettyInstitutionLabel(institutionType)} name
+                    </label>
 
                     <input
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-12 text-white outline-none placeholder:text-white/25"
-                      value={countrySearch}
-                      onChange={(event) => {
-                        setCountrySearch(event.target.value);
-                        setPickerOpen(true);
-                      }}
-                      onFocus={() => setPickerOpen(true)}
-                      placeholder="Search any country"
+                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
+                      value={schoolName}
+                      onChange={(event) => setSchoolName(event.target.value)}
+                      placeholder={suggestedPlaceholder(institutionType)}
+                      required
                     />
+                  </div>
 
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                  <div
+                    ref={pickerRef}
+                    className="skuully-glass-card rounded-[24px] p-5"
+                  >
+                    <label className="mb-3 block text-sm text-white/70">
+                      Country
+                    </label>
 
-                    {pickerOpen ? (
-                      <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-[20px] border border-white/10 bg-[#0a1022] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-                        {filteredCountries.length > 0 ? (
-                          filteredCountries.map((country) => {
-                            const selected =
-                              selectedCountry?.code === country.code;
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
 
-                            return (
-                              <button
-                                key={country.code}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedCountry(country);
-                                  setCountrySearch(country.name);
-                                  setPickerOpen(false);
+                      <input
+                        className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-12 text-white outline-none placeholder:text-white/25"
+                        value={countrySearch}
+                        onChange={(event) => {
+                          setCountrySearch(event.target.value);
+                          setPickerOpen(true);
+                        }}
+                        onFocus={() => setPickerOpen(true)}
+                        placeholder="Search any country"
+                      />
 
-                                  const matchedPhoneCountry = PHONE_COUNTRIES.find(
-                                    (item) => item.code === country.code
-                                  );
-                                  if (matchedPhoneCountry) {
-                                    setPhoneCountryCode(matchedPhoneCountry.code);
-                                  }
-                                }}
-                                className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition ${
-                                  selected
-                                    ? "bg-[rgba(58,109,255,0.14)]"
-                                    : "hover:bg-white/[0.05]"
-                                }`}
-                              >
-                                <div>
-                                  <div className="text-sm font-medium text-white">
-                                    {country.name}
+                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+
+                      {pickerOpen ? (
+                        <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-[20px] border border-white/10 bg-[#0a1022] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+                          {filteredCountries.length > 0 ? (
+                            filteredCountries.map((country) => {
+                              const selected =
+                                selectedCountry?.code === country.code;
+
+                              return (
+                                <button
+                                  key={country.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCountry(country);
+                                    setCountrySearch(country.name);
+                                    setPickerOpen(false);
+
+                                    const matchedPhoneCountry =
+                                      PHONE_COUNTRIES.find(
+                                        (item) => item.code === country.code
+                                      );
+
+                                    if (matchedPhoneCountry) {
+                                      setPhoneCountryCode(matchedPhoneCountry.code);
+                                    }
+                                  }}
+                                  className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition ${
+                                    selected
+                                      ? "bg-[rgba(58,109,255,0.14)]"
+                                      : "hover:bg-white/[0.05]"
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="text-sm font-medium text-white">
+                                      {country.name}
+                                    </div>
+                                    <div className="mt-1 text-xs text-white/45">
+                                      {country.nativeCurriculum ??
+                                        "No default academic suggestion"}
+                                    </div>
                                   </div>
-                                  <div className="mt-1 text-xs text-white/45">
-                                    {country.nativeCurriculum ??
-                                      "No default academic suggestion"}
-                                  </div>
-                                </div>
 
-                                {selected ? (
-                                  <Check className="mt-0.5 h-4 w-4 text-[#9bb4ff]" />
-                                ) : null}
-                              </button>
-                            );
-                          })
+                                  {selected ? (
+                                    <Check className="mt-0.5 h-4 w-4 text-[#9bb4ff]" />
+                                  ) : null}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="rounded-2xl px-4 py-4 text-sm text-white/50">
+                              No countries matched your search.
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {step === "academic" ? (
+                <div className="skuully-glass-card rounded-[24px] p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                      <Sparkles className="h-4 w-4 text-[#b7c8ff]" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-medium text-white">
+                        {getAcademicLabel(institutionType)}
+                      </h3>
+                      <p className="mt-1 text-sm leading-7 text-white/55">
+                        {getAcademicDescription(institutionType)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="mb-3 block text-sm text-white/70">
+                      Search options
+                    </label>
+
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                      <input
+                        className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-4 text-white outline-none placeholder:text-white/25"
+                        value={academicSearch}
+                        onChange={(event) => setAcademicSearch(event.target.value)}
+                        placeholder={`Search ${getAcademicLabel(
+                          institutionType
+                        ).toLowerCase()}`}
+                      />
+                    </div>
+
+                    <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
+                      {filteredAcademicOptions.map((item) => {
+                        const selected = selectedAcademicItems.some(
+                          (selectedItem) =>
+                            selectedItem.label.toLowerCase() ===
+                              item.label.toLowerCase() &&
+                            (selectedItem.code ?? "") === (item.code ?? "")
+                        );
+
+                        return (
+                          <button
+                            key={`${item.label}-${item.code ?? "no-code"}`}
+                            type="button"
+                            onClick={() => toggleAcademicItem(item)}
+                            className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+                              selected
+                                ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
+                                : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                            }`}
+                          >
+                            <span className="text-sm text-white">{item.label}</span>
+                            {selected ? (
+                              <Check className="h-4 w-4 text-[#9bb4ff]" />
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedAcademicItems.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {selectedAcademicItems.map((item) => (
+                          <button
+                            key={`${item.label}-${item.code ?? "no-code"}-chip`}
+                            type="button"
+                            onClick={() => toggleAcademicItem(item)}
+                            className="rounded-full border border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)] px-3 py-1.5 text-xs text-white/85"
+                          >
+                            {item.label} ×
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSetAcademicLater(true);
+                        setSelectedAcademicItems([]);
+                      }}
+                      className={`mt-4 w-full rounded-[20px] border px-4 py-4 text-left transition ${
+                        setAcademicLater
+                          ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
+                          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-white">
+                            Set up later
+                          </div>
+                          <div className="mt-1 text-sm text-white/52">
+                            Continue now and configure this in more detail later
+                          </div>
+                        </div>
+
+                        {setAcademicLater ? (
+                          <Check className="h-4 w-4 text-[#9bb4ff]" />
+                        ) : null}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {step === "details" ? (
+                <div className="skuully-glass-card rounded-[24px] p-5">
+                  <h3 className="text-lg font-medium text-white">
+                    Relevant details for your{" "}
+                    {prettyInstitutionLabel(institutionType).toLowerCase()}
+                  </h3>
+                  <p className="mt-1 text-sm leading-7 text-white/55">
+                    Skuully adjusts these fields based on what you are building.
+                  </p>
+
+                  <div className="mt-5 grid gap-4">
+                    <div>
+                      <label className="mb-2 block text-sm text-white/70">
+                        Learning mode
+                      </label>
+                      <select
+                        value={details.learningMode}
+                        onChange={(event) =>
+                          setDetails((prev) => ({
+                            ...prev,
+                            learningMode: event.target.value,
+                          }))
+                        }
+                        className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                      >
+                        <option value="">Select learning mode</option>
+                        {detailOptions.learningModes.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm text-white/70">
+                        Ownership
+                      </label>
+                      <select
+                        value={details.ownership}
+                        onChange={(event) =>
+                          setDetails((prev) => ({
+                            ...prev,
+                            ownership: event.target.value,
+                          }))
+                        }
+                        className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                      >
+                        <option value="">Select ownership</option>
+                        {detailOptions.ownerships.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm text-white/70">
+                        Level type
+                      </label>
+                      <select
+                        value={details.levelType}
+                        onChange={(event) =>
+                          setDetails((prev) => ({
+                            ...prev,
+                            levelType: event.target.value,
+                          }))
+                        }
+                        className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                      >
+                        <option value="">Select level type</option>
+                        {detailOptions.levelTypes.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {step === "security" ? (
+                <div className="skuully-glass-card rounded-[24px] p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                      <LockKeyhole className="h-4 w-4 text-[#b7c8ff]" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-medium text-white">
+                        Add a verification number
+                      </h3>
+                      <p className="mt-1 text-sm leading-7 text-white/55">
+                        Protect your account with a phone number for future verification and 2FA.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddPhoneLater(true);
+                        setPhoneError(null);
+                      }}
+                      className={`rounded-[20px] border px-4 py-4 text-left transition ${
+                        addPhoneLater
+                          ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
+                          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-white">
+                            Add later
+                          </div>
+                          <div className="mt-1 text-sm text-white/52">
+                            Skip phone verification for now
+                          </div>
+                        </div>
+
+                        {addPhoneLater ? (
+                          <Check className="h-4 w-4 text-[#9bb4ff]" />
+                        ) : null}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAddPhoneLater(false)}
+                      className={`rounded-[20px] border px-4 py-4 text-left transition ${
+                        !addPhoneLater
+                          ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
+                          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-white">
+                            Add phone now
+                          </div>
+                          <div className="mt-1 text-sm text-white/52">
+                            Use a verification number for future account protection
+                          </div>
+                        </div>
+
+                        {!addPhoneLater ? (
+                          <Check className="h-4 w-4 text-[#9bb4ff]" />
+                        ) : null}
+                      </div>
+                    </button>
+
+                    {!addPhoneLater ? (
+                      <div className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-[190px_1fr]">
+                          <div>
+                            <label className="mb-2 block text-sm text-white/70">
+                              Country
+                            </label>
+                            <select
+                              value={phoneCountryCode}
+                              onChange={(event) => {
+                                setPhoneCountryCode(event.target.value);
+                                setPhoneError(null);
+                                setPhoneNumber("");
+                              }}
+                              className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                            >
+                              {PHONE_COUNTRIES.map((item) => (
+                                <option key={item.code} value={item.code}>
+                                  {item.flag} {item.name} ({item.dialCode})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="mb-2 block text-sm text-white/70">
+                              Phone number
+                            </label>
+                            <div className="flex overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
+                              <div className="flex items-center gap-2 border-r border-white/10 px-4 text-sm text-white/70">
+                                <span>{currentPhoneCountry.flag}</span>
+                                <span>{currentPhoneCountry.dialCode}</span>
+                              </div>
+
+                              <input
+                                className="skuully-focus-ring w-full bg-transparent px-4 py-4 text-white outline-none placeholder:text-white/25"
+                                value={phoneNumber}
+                                onChange={(event) =>
+                                  handlePhoneChange(event.target.value)
+                                }
+                                placeholder="Enter phone number"
+                                inputMode="numeric"
+                                type="tel"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {phoneError ? (
+                          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                            {phoneError}
+                          </div>
                         ) : (
-                          <div className="rounded-2xl px-4 py-4 text-sm text-white/50">
-                            No countries matched your search.
+                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
+                            Final number: {normalizedPhone}
                           </div>
                         )}
                       </div>
                     ) : null}
                   </div>
                 </div>
-              </>
-            ) : null}
+              ) : null}
 
-            {step === "academic" ? (
-              <div className="skuully-glass-card rounded-[24px] p-5">
-                <div className="flex items-start gap-3">
-                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                    <Sparkles className="h-4 w-4 text-[#b7c8ff]" />
-                  </div>
+              {step === "review" ? (
+                <div className="skuully-glass-card rounded-[24px] p-5">
+                  <h3 className="text-lg font-medium text-white">
+                    Review your workspace
+                  </h3>
 
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-medium text-white">
-                      {getAcademicLabel(institutionType)}
-                    </h3>
-                    <p className="mt-1 text-sm leading-7 text-white/55">
-                      {getAcademicDescription(institutionType)}
+                  <div className="mt-5 space-y-3 text-sm text-white/55">
+                    <p>
+                      <span className="text-white">Type:</span>{" "}
+                      {prettyInstitutionLabel(institutionType)}
+                    </p>
+                    <p>
+                      <span className="text-white">Name:</span>{" "}
+                      {schoolName.trim()}
+                    </p>
+                    <p>
+                      <span className="text-white">Country:</span>{" "}
+                      {selectedCountry?.name}
+                    </p>
+                    <p>
+                      <span className="text-white">
+                        {getAcademicLabel(institutionType)}:
+                      </span>{" "}
+                      {setAcademicLater
+                        ? "Will set later"
+                        : selectedAcademicItems.length
+                        ? selectedAcademicItems.map((item) => item.label).join(", ")
+                        : "None selected"}
+                    </p>
+                    <p>
+                      <span className="text-white">Learning mode:</span>{" "}
+                      {details.learningMode}
+                    </p>
+                    <p>
+                      <span className="text-white">Ownership:</span>{" "}
+                      {details.ownership}
+                    </p>
+                    <p>
+                      <span className="text-white">Level type:</span>{" "}
+                      {details.levelType}
+                    </p>
+                    <p>
+                      <span className="text-white">Verification phone:</span>{" "}
+                      {addPhoneLater ? "Will add later" : normalizedPhone}
                     </p>
                   </div>
-                </div>
 
-                <div className="mt-4">
-                  <label className="mb-3 block text-sm text-white/70">
-                    Search options
-                  </label>
-
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                    <input
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-4 text-white outline-none placeholder:text-white/25"
-                      value={academicSearch}
-                      onChange={(event) => setAcademicSearch(event.target.value)}
-                      placeholder={`Search ${getAcademicLabel(
-                        institutionType
-                      ).toLowerCase()}`}
-                    />
+                  <div className="mt-5 rounded-[20px] border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-white/52">
+                    Skuully will prepare your main workspace and initial structure from this setup.
                   </div>
-
-                  <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
-                    {filteredAcademicOptions.map((item) => {
-                      const selected = selectedAcademicItems.includes(item);
-
-                      return (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => toggleAcademicItem(item)}
-                          className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
-                            selected
-                              ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                          }`}
-                        >
-                          <span className="text-sm text-white">{item}</span>
-                          {selected ? (
-                            <Check className="h-4 w-4 text-[#9bb4ff]" />
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {selectedAcademicItems.length > 0 ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {selectedAcademicItems.map((item) => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => toggleAcademicItem(item)}
-                          className="rounded-full border border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)] px-3 py-1.5 text-xs text-white/85"
-                        >
-                          {item} ×
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSetAcademicLater(true);
-                      setSelectedAcademicItems([]);
-                    }}
-                    className={`mt-4 w-full rounded-[20px] border px-4 py-4 text-left transition ${
-                      setAcademicLater
-                        ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          Set up later
-                        </div>
-                        <div className="mt-1 text-sm text-white/52">
-                          Continue now and configure this in more detail later
-                        </div>
-                      </div>
-
-                      {setAcademicLater ? (
-                        <Check className="h-4 w-4 text-[#9bb4ff]" />
-                      ) : null}
-                    </div>
-                  </button>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
 
-            {step === "details" ? (
+            <div className="space-y-6">
+              <MiniInfo label="Founder" value={me?.fullName ?? "Ready"} />
+              <MiniInfo
+                label="Institution type"
+                value={prettyInstitutionLabel(institutionType)}
+              />
+              <MiniInfo
+                label="Country"
+                value={selectedCountry?.name ?? "Pending"}
+              />
+
               <div className="skuully-glass-card rounded-[24px] p-5">
-                <h3 className="text-lg font-medium text-white">
-                  Relevant details for your{" "}
-                  {prettyInstitutionLabel(institutionType).toLowerCase()}
-                </h3>
-                <p className="mt-1 text-sm leading-7 text-white/55">
-                  Skuully adjusts these fields based on what you are building.
-                </p>
-
-                <div className="mt-5 grid gap-4">
-                  <div>
-                    <label className="mb-2 block text-sm text-white/70">
-                      Learning mode
-                    </label>
-                    <select
-                      value={details.learningMode}
-                      onChange={(event) =>
-                        setDetails((prev) => ({
-                          ...prev,
-                          learningMode: event.target.value,
-                        }))
-                      }
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
-                    >
-                      <option value="">Select learning mode</option>
-                      {detailOptions.learningModes.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm text-white/70">
-                      Ownership
-                    </label>
-                    <select
-                      value={details.ownership}
-                      onChange={(event) =>
-                        setDetails((prev) => ({
-                          ...prev,
-                          ownership: event.target.value,
-                        }))
-                      }
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
-                    >
-                      <option value="">Select ownership</option>
-                      {detailOptions.ownerships.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm text-white/70">
-                      Level type
-                    </label>
-                    <select
-                      value={details.levelType}
-                      onChange={(event) =>
-                        setDetails((prev) => ({
-                          ...prev,
-                          levelType: event.target.value,
-                        }))
-                      }
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
-                    >
-                      <option value="">Select level type</option>
-                      {detailOptions.levelTypes.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {step === "security" ? (
-              <div className="skuully-glass-card rounded-[24px] p-5">
-                <div className="flex items-start gap-3">
-                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                    <LockKeyhole className="h-4 w-4 text-[#b7c8ff]" />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-medium text-white">
-                      Add a verification number
-                    </h3>
-                    <p className="mt-1 text-sm leading-7 text-white/55">
-                      Protect your account with a phone number for future verification and 2FA.
-                    </p>
-                  </div>
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                  <Building2 className="h-4 w-4 text-white/72" />
                 </div>
 
-                <div className="mt-5 grid gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddPhoneLater(true);
-                      setPhoneError(null);
-                    }}
-                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
-                      addPhoneLater
-                        ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          Add later
-                        </div>
-                        <div className="mt-1 text-sm text-white/52">
-                          Skip phone verification for now
-                        </div>
-                      </div>
-
-                      {addPhoneLater ? (
-                        <Check className="h-4 w-4 text-[#9bb4ff]" />
-                      ) : null}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setAddPhoneLater(false)}
-                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
-                      !addPhoneLater
-                        ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          Add phone now
-                        </div>
-                        <div className="mt-1 text-sm text-white/52">
-                          Use a verification number for future account protection
-                        </div>
-                      </div>
-
-                      {!addPhoneLater ? (
-                        <Check className="h-4 w-4 text-[#9bb4ff]" />
-                      ) : null}
-                    </div>
-                  </button>
-
-                  {!addPhoneLater ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-[190px_1fr]">
-                        <div>
-                          <label className="mb-2 block text-sm text-white/70">
-                            Country
-                          </label>
-                          <select
-                            value={phoneCountryCode}
-                            onChange={(event) => {
-                              setPhoneCountryCode(event.target.value);
-                              setPhoneError(null);
-                            }}
-                            className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
-                          >
-                            {PHONE_COUNTRIES.map((item) => (
-                              <option key={item.code} value={item.code}>
-                                {item.flag} {item.name} ({item.dialCode})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="mb-2 block text-sm text-white/70">
-                            Phone number
-                          </label>
-                          <div className="flex overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
-                            <div className="flex items-center gap-2 border-r border-white/10 px-4 text-sm text-white/70">
-                              <span>{currentPhoneCountry.flag}</span>
-                              <span>{currentPhoneCountry.dialCode}</span>
-                            </div>
-
-                            <input
-                              className="skuully-focus-ring w-full bg-transparent px-4 py-4 text-white outline-none placeholder:text-white/25"
-                              value={phoneNumber}
-                              onChange={(event) =>
-                                handlePhoneChange(event.target.value)
-                              }
-                              placeholder="Enter phone number"
-                              inputMode="numeric"
-                              type="tel"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {phoneError ? (
-                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                          {phoneError}
-                        </div>
-                      ) : (
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
-                          Final number: {normalizedPhone}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-
-            {step === "review" ? (
-              <div className="skuully-glass-card rounded-[24px] p-5">
-                <h3 className="text-lg font-medium text-white">
-                  Review your workspace
+                <h3 className="mt-4 text-lg font-medium text-white">
+                  Workspace snapshot
                 </h3>
 
-                <div className="mt-5 space-y-3 text-sm text-white/55">
+                <div className="mt-4 space-y-3 text-sm text-white/55">
                   <p>
-                    <span className="text-white">Type:</span>{" "}
-                    {prettyInstitutionLabel(institutionType)}
+                    <span className="text-white">Step:</span> {currentStep} of{" "}
+                    {totalSteps}
                   </p>
                   <p>
-                    <span className="text-white">Name:</span>{" "}
-                    {schoolName.trim()}
+                    <span className="text-white">Suggested default:</span>{" "}
+                    {selectedCountry?.nativeCurriculum ?? "Not available"}
                   </p>
                   <p>
-                    <span className="text-white">Country:</span>{" "}
-                    {selectedCountry?.name}
-                  </p>
-                  <p>
-                    <span className="text-white">
-                      {getAcademicLabel(institutionType)}:
-                    </span>{" "}
+                    <span className="text-white">Selected items:</span>{" "}
                     {setAcademicLater
-                      ? "Will set later"
+                      ? "Later"
                       : selectedAcademicItems.length
-                      ? selectedAcademicItems.join(", ")
-                      : "None selected"}
-                  </p>
-                  <p>
-                    <span className="text-white">Learning mode:</span>{" "}
-                    {details.learningMode}
-                  </p>
-                  <p>
-                    <span className="text-white">Ownership:</span>{" "}
-                    {details.ownership}
-                  </p>
-                  <p>
-                    <span className="text-white">Level type:</span>{" "}
-                    {details.levelType}
-                  </p>
-                  <p>
-                    <span className="text-white">Verification phone:</span>{" "}
-                    {addPhoneLater ? "Will add later" : normalizedPhone}
+                      ? selectedAcademicItems.map((item) => item.label).join(", ")
+                      : "Pending"}
                   </p>
                 </div>
+              </div>
 
-                <div className="mt-5 rounded-[20px] border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-white/52">
-                  Skuully will prepare your main workspace and initial structure from this setup.
+              <div className="skuully-glass-card rounded-[24px] p-5">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                  <Globe2 className="h-4 w-4 text-white/72" />
                 </div>
-              </div>
-            ) : null}
-          </div>
 
-          <div className="space-y-6">
-            <MiniInfo label="Founder" value={me?.fullName ?? "Ready"} />
-            <MiniInfo
-              label="Institution type"
-              value={prettyInstitutionLabel(institutionType)}
-            />
-            <MiniInfo
-              label="Country"
-              value={selectedCountry?.name ?? "Pending"}
-            />
+                <h3 className="mt-4 text-lg font-medium text-white">
+                  Smart setup
+                </h3>
 
-            <div className="skuully-glass-card rounded-[24px] p-5">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                <Building2 className="h-4 w-4 text-white/72" />
-              </div>
-
-              <h3 className="mt-4 text-lg font-medium text-white">
-                Workspace snapshot
-              </h3>
-
-              <div className="mt-4 space-y-3 text-sm text-white/55">
-                <p>
-                  <span className="text-white">Step:</span> {currentStep} of{" "}
-                  {totalSteps}
-                </p>
-                <p>
-                  <span className="text-white">Suggested default:</span>{" "}
-                  {selectedCountry?.nativeCurriculum ?? "Not available"}
-                </p>
-                <p>
-                  <span className="text-white">Selected items:</span>{" "}
-                  {setAcademicLater
-                    ? "Later"
-                    : selectedAcademicItems.length
-                    ? selectedAcademicItems.join(", ")
-                    : "Pending"}
+                <p className="mt-2 text-sm leading-7 text-white/55">
+                  Skuully is using your institution type and country to shape the most relevant setup path for you.
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="skuully-glass-card rounded-[24px] p-5">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                <Globe2 className="h-4 w-4 text-white/72" />
-              </div>
-
-              <h3 className="mt-4 text-lg font-medium text-white">
-                Smart setup
-              </h3>
-
-              <p className="mt-2 text-sm leading-7 text-white/55">
-                Skuully is using your institution type and country to shape the most relevant setup path for you.
-              </p>
+          {error ? (
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              {error}
             </div>
-          </div>
-        </div>
-
-        {error ? (
-          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-            {error}
-          </div>
-        ) : null}
-      </form>
+          ) : null}
+        </form>
     </OnboardingShell>
   );
 }

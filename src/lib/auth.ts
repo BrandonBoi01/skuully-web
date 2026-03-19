@@ -179,7 +179,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
-export async function loginWithEmail(identifier: string, password: string) {
+export async function loginWithIdentifier(identifier: string, password: string) {
   return fetchJson<LoginResponse>(`${API_URL}/auth/login`, {
     method: "POST",
     headers: {
