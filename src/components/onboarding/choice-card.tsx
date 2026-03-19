@@ -29,9 +29,16 @@ export function ChoiceCard({
           : "border-white/10",
       ].join(" ")}
     >
-      <div className="pointer-events-none absolute left-0 top-0 h-28 w-28 rounded-full bg-[radial-gradient(circle,rgba(126,87,255,0.20)_0%,rgba(58,109,255,0.10)_35%,transparent_72%)] blur-2xl transition-opacity duration-200 group-hover:opacity-100 opacity-80" />
+      <div className="choice-card-glow" />
 
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] transition-all duration-200 group-hover:border-white/15">
+      <div
+        className={[
+          "relative flex h-11 w-11 items-center justify-center rounded-2xl border bg-white/[0.04] transition-all duration-200",
+          selected
+            ? "border-[rgba(118,142,255,0.30)] shadow-[0_0_18px_rgba(126,87,255,0.14)]"
+            : "border-white/10 group-hover:border-white/15",
+        ].join(" ")}
+      >
         <Icon className="h-5 w-5 text-white" />
       </div>
 
