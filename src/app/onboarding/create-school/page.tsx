@@ -14,17 +14,23 @@ import {
 } from "lucide-react";
 
 import { getMe } from "@/lib/auth";
-import { getGeoCountries, type GeoCountry } from "@/lib/geo";
 import {
+  completeBuildInstitution,
+  getAcademicOptions,
+  getBuildReview,
+  getDetailOptions,
   saveBuildAcademic,
   saveBuildDetails,
   saveBuildIdentity,
   sendPhoneCode,
-  verifyPhoneCode,
   skipPhoneStep,
-} from "@/lib/onboarding-api";
+  verifyPhoneCode,
+  type AcademicOption,
+  type GenderAdmissionPolicy,
+  type LearningMode,
+} from "@/lib/onboarding";
+import { getGeoCountries, getPhoneCountries, type GeoCountry } from "@/lib/geo";
 import {
-  clearOnboardingState,
   readOnboardingState,
   type BuildInstitutionType,
 } from "@/lib/onboarding-flow";
@@ -47,16 +53,19 @@ type MeResponse = {
 type BuildStep = "identity" | "academic" | "details" | "security" | "review";
 
 type InstitutionDetails = {
-  learningModes: string[];
-  genderAdmissionPolicy: string;
+  learningModes: LearningMode[];
   ownership: string;
   levelType: string;
+  genderAdmissionPolicy: GenderAdmissionPolicy | "";
 };
 
-type AcademicOption = {
-  label: string;
-  code?: string;
-  category?: string;
+type PhoneCountry = {
+  code: string;
+  name: string;
+  flagEmoji?: string | null;
+  phoneCode?: string | null;
+  phoneMinLength?: number | null;
+  phoneMaxLength?: number | null;
 };
 
 function prettyInstitutionLabel(type: BuildInstitutionType | null) {
@@ -104,196 +113,17 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
   );
 }
 
-function getAcademicLabel(type: BuildInstitutionType | null) {
-  switch (type) {
-    case "school":
-    case "academy":
-      return "Curricula";
-    case "college":
-    case "university":
-      return "Academic frameworks";
-    case "polytechnic":
-    case "vocational":
-    case "training_center":
-      return "Training frameworks";
-    default:
-      return "Academic setup";
-  }
-}
-
-function getAcademicDescription(type: BuildInstitutionType | null) {
-  switch (type) {
-    case "school":
-    case "academy":
-      return "Choose one or more curricula for your institution, or set them up later.";
-    case "college":
-    case "university":
-      return "Choose one or more academic frameworks, or leave them for later.";
-    case "polytechnic":
-    case "vocational":
-    case "training_center":
-      return "Choose one or more training frameworks, or set them up later.";
-    default:
-      return "Choose the structure that best fits your institution.";
-  }
-}
-
-function getAcademicOptions(
-  type: BuildInstitutionType | null,
-  country: GeoCountry | null
-): AcademicOption[] {
-  const countryCode = country?.code;
-
-  if (type === "school" || type === "academy") {
-    const options: AcademicOption[] = [
-      ...(countryCode === "KE"
-        ? [
-            { label: "CBC", code: "KE_CBC", category: "national" },
-            { label: "8-4-4", code: "KE_844", category: "national_legacy" },
-          ]
-        : []),
-      ...(country?.nativeCurriculumName
-        ? [
-            {
-              label: country.nativeCurriculumName,
-              code: country.nativeCurriculumCode ?? undefined,
-              category: "national",
-            },
-          ]
-        : []),
-      { label: "Cambridge Curriculum", code: "CAM_IGCSE", category: "international" },
-      { label: "International Baccalaureate (IB)", code: "IB", category: "international" },
-      { label: "American Curriculum", code: "US_GENERAL", category: "international" },
-      { label: "British Curriculum", code: "BRITISH", category: "international" },
-      { label: "CBSE", code: "CBSE", category: "international" },
-      { label: "IGCSE", code: "IGCSE", category: "international" },
-      { label: "Pearson Edexcel", code: "EDEXCEL", category: "international" },
-      { label: "Montessori", code: "MONTESSORI", category: "alternative" },
-      { label: "Waldorf", code: "WALDORF", category: "alternative" },
-    ];
-
-    return options.filter(
-      (item, index, array) =>
-        array.findIndex(
-          (candidate) =>
-            candidate.label.toLowerCase() === item.label.toLowerCase()
-        ) === index
-    );
-  }
-
-  if (type === "college" || type === "university") {
-    return [
-      { label: "Semester-based", category: "academic_framework" },
-      { label: "Trimester-based", category: "academic_framework" },
-      { label: "Modular", category: "academic_framework" },
-      { label: "Credit-hour system", category: "academic_framework" },
-      { label: "Competency-based", category: "academic_framework" },
-      { label: "Outcome-based", category: "academic_framework" },
-      { label: "Research-led", category: "academic_framework" },
-    ];
-  }
-
-  return [
-    { label: "Certification-based", category: "training_framework" },
-    { label: "Competency-based", category: "training_framework" },
-    { label: "Module-based", category: "training_framework" },
-    { label: "Workshop-led", category: "training_framework" },
-    { label: "Apprenticeship-aligned", category: "training_framework" },
-    { label: "Industry-aligned", category: "training_framework" },
-    { label: "Outcome-based", category: "training_framework" },
-  ];
-}
-
-function getInstitutionDetailOptions(type: BuildInstitutionType | null) {
-  switch (type) {
-    case "school":
-      return {
-        learningModes: ["DAY", "BOARDING", "IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Public", "International"],
-        levelTypes: ["Primary", "Secondary", "Combined"],
-      };
-    case "college":
-      return {
-        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Public"],
-        levelTypes: ["Certificate", "Diploma", "Mixed"],
-      };
-    case "university":
-      return {
-        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Public"],
-        levelTypes: ["Undergraduate", "Postgraduate", "Both"],
-      };
-    default:
-      return {
-        learningModes: ["IN_PERSON", "ONLINE", "HYBRID"],
-        genderAdmissionPolicies: [
-          { value: "BOYS_ONLY", label: "Boys only" },
-          { value: "GIRLS_ONLY", label: "Girls only" },
-          { value: "MIXED", label: "Mixed" },
-        ],
-        ownerships: ["Private", "Public"],
-        levelTypes: ["General"],
-      };
-  }
-}
-
-function prettyLearningMode(value: string) {
-  switch (value) {
-    case "DAY":
-      return "Day";
-    case "BOARDING":
-      return "Boarding";
-    case "IN_PERSON":
-      return "In-person";
-    case "ONLINE":
-      return "Online";
-    case "HYBRID":
-      return "Hybrid";
-    default:
-      return value;
-  }
-}
-
-function prettyGenderPolicy(value: string) {
-  switch (value) {
-    case "BOYS_ONLY":
-      return "Boys only";
-    case "GIRLS_ONLY":
-      return "Girls only";
-    case "MIXED":
-      return "Mixed";
-    default:
-      return value;
-  }
-}
-
 function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function normalizeNationalPhone(country: GeoCountry | null, value: string) {
+function normalizeNationalPhone(country: PhoneCountry | null, value: string) {
   let digits = normalizeDigits(value);
-  if (!digits) return digits;
+  if (!digits || !country?.phoneCode) return digits;
 
-  const dialDigits = (country?.phoneCode ?? "").replace("+", "");
+  const dialDigits = country.phoneCode.replace("+", "");
 
-  if (dialDigits && digits.startsWith(dialDigits)) {
+  if (digits.startsWith(dialDigits)) {
     digits = digits.slice(dialDigits.length);
   }
 
@@ -304,10 +134,12 @@ function normalizeNationalPhone(country: GeoCountry | null, value: string) {
   return digits;
 }
 
-function validatePhone(country: GeoCountry | null, value: string) {
+function validatePhone(country: PhoneCountry | null, value: string) {
+  if (!country?.phoneCode) return "Select a phone country first.";
+
   const cleaned = normalizeNationalPhone(country, value);
-  const min = country?.phoneMinLength ?? 6;
-  const max = country?.phoneMaxLength ?? 15;
+  const min = country.phoneMinLength ?? 6;
+  const max = country.phoneMaxLength ?? 15;
 
   if (!cleaned.length) return "Enter your phone number.";
   if (cleaned.length < min) return "Phone number is too short for this country.";
@@ -322,50 +154,64 @@ export default function CreateSchoolPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
-  const [isSendingCode, setIsSendingCode] = useState(false);
-  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
-
   const [me, setMe] = useState<MeResponse | null>(null);
   const [institutionType, setInstitutionType] = useState<BuildInstitutionType | null>(null);
   const [step, setStep] = useState<BuildStep>("identity");
 
-  const [countries, setCountries] = useState<GeoCountry[]>([]);
   const [schoolName, setSchoolName] = useState("");
   const [countrySearch, setCountrySearch] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<GeoCountry | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [countries, setCountries] = useState<GeoCountry[]>([]);
 
   const [academicSearch, setAcademicSearch] = useState("");
+  const [academicLabel, setAcademicLabel] = useState("Academic setup");
+  const [academicDescription, setAcademicDescription] = useState("");
+  const [academicOptions, setAcademicOptions] = useState<AcademicOption[]>([]);
   const [selectedAcademicItems, setSelectedAcademicItems] = useState<AcademicOption[]>([]);
   const [setAcademicLater, setSetAcademicLater] = useState(false);
 
   const [details, setDetails] = useState<InstitutionDetails>({
     learningModes: [],
-    genderAdmissionPolicy: "MIXED",
     ownership: "",
     levelType: "",
+    genderAdmissionPolicy: "",
+  });
+
+  const [detailOptions, setDetailOptions] = useState<{
+    learningModes: string[];
+    ownerships: string[];
+    levelTypes: string[];
+    genderAdmissionPolicies: Array<{ label: string; value: GenderAdmissionPolicy }>;
+  }>({
+    learningModes: [],
+    ownerships: [],
+    levelTypes: [],
+    genderAdmissionPolicies: [],
   });
 
   const [addPhoneLater, setAddPhoneLater] = useState(true);
+  const [phoneCountries, setPhoneCountries] = useState<PhoneCountry[]>([]);
   const [phoneCountryCode, setPhoneCountryCode] = useState("KE");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [verificationCode, setVerificationCode] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
-  const [phoneNotice, setPhoneNotice] = useState<string | null>(null);
+  const [phoneBusy, setPhoneBusy] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
   const currentPhoneCountry =
-    countries.find((item) => item.code === phoneCountryCode) ?? selectedCountry ?? null;
+    phoneCountries.find((item) => item.code === phoneCountryCode) ?? null;
 
   useEffect(() => {
     async function load() {
       try {
-        const [meResponse, countriesResponse] = await Promise.all([
+        const [meResponse, countriesResponse, phoneCountriesResponse] = await Promise.all([
           getMe(),
           getGeoCountries(),
+          getPhoneCountries(),
         ]);
 
         if (!meResponse) {
@@ -391,20 +237,30 @@ export default function CreateSchoolPage() {
           return;
         }
 
-        const loadedCountries = countriesResponse.items ?? [];
-        setCountries(loadedCountries);
         setInstitutionType(buildType);
         setMe(meResponse);
+        setCountries(countriesResponse.items);
+        setPhoneCountries(
+          phoneCountriesResponse.items.map((item) => ({
+            code: item.code,
+            name: item.name,
+            flagEmoji: item.flagEmoji,
+            phoneCode: item.phoneCode,
+            phoneMinLength: item.phoneMinLength,
+            phoneMaxLength: item.phoneMaxLength,
+          }))
+        );
 
-        const kenya =
-          loadedCountries.find((item) => item.code === "KE") ??
-          loadedCountries[0] ??
-          null;
-
+        const kenya = countriesResponse.items.find((item) => item.code === "KE") ?? null;
         if (kenya) {
           setSelectedCountry(kenya);
           setCountrySearch(kenya.name);
-          setPhoneCountryCode(kenya.code);
+        }
+
+        const phoneKenya =
+          phoneCountriesResponse.items.find((item) => item.code === "KE") ?? null;
+        if (phoneKenya) {
+          setPhoneCountryCode(phoneKenya.code);
         }
 
         setIsLoading(false);
@@ -415,6 +271,30 @@ export default function CreateSchoolPage() {
 
     void load();
   }, [router]);
+
+  useEffect(() => {
+    async function loadAcademicAndDetails() {
+      if (!institutionType || !selectedCountry?.code) return;
+
+      try {
+        const [academic, detail] = await Promise.all([
+          getAcademicOptions(
+            mapInstitutionTypeForApi(institutionType),
+            selectedCountry.code
+          ),
+          getDetailOptions(mapInstitutionTypeForApi(institutionType)),
+        ]);
+
+        setAcademicLabel(academic.label);
+        setAcademicDescription(academic.description);
+        setAcademicOptions(academic.options);
+
+        setDetailOptions(detail);
+      } catch {}
+    }
+
+    void loadAcademicAndDetails();
+  }, [institutionType, selectedCountry]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -430,7 +310,6 @@ export default function CreateSchoolPage() {
 
   const filteredCountries = useMemo(() => {
     const query = countrySearch.trim().toLowerCase();
-
     if (!query) return countries;
 
     return countries.filter(
@@ -439,27 +318,16 @@ export default function CreateSchoolPage() {
         item.code.toLowerCase().includes(query) ||
         (item.nativeCurriculumName ?? "").toLowerCase().includes(query)
     );
-  }, [countrySearch, countries]);
-
-  const academicOptions = useMemo(
-    () => getAcademicOptions(institutionType, selectedCountry),
-    [institutionType, selectedCountry]
-  );
+  }, [countries, countrySearch]);
 
   const filteredAcademicOptions = useMemo(() => {
     const query = academicSearch.trim().toLowerCase();
-
     if (!query) return academicOptions;
 
     return academicOptions.filter((item) =>
       item.label.toLowerCase().includes(query)
     );
   }, [academicSearch, academicOptions]);
-
-  const detailOptions = useMemo(
-    () => getInstitutionDetailOptions(institutionType),
-    [institutionType]
-  );
 
   const totalSteps = 5;
   const currentStep =
@@ -478,15 +346,19 @@ export default function CreateSchoolPage() {
   const detailsReady =
     details.learningModes.length > 0 &&
     !!details.ownership &&
-    !!details.levelType &&
-    !!details.genderAdmissionPolicy;
+    !!details.levelType;
+  const securityReady =
+    addPhoneLater ||
+    (phoneVerified && !validatePhone(currentPhoneCountry, phoneNumber));
 
-  const normalizedNationalPhone = normalizeNationalPhone(currentPhoneCountry, phoneNumber);
-  const normalizedPhone = `${currentPhoneCountry?.phoneCode ?? ""}${normalizedNationalPhone}`;
-
-  const securityReady = addPhoneLater
-    ? true
-    : !validatePhone(currentPhoneCountry, phoneNumber) && phoneVerified;
+  const normalizedNationalPhone = normalizeNationalPhone(
+    currentPhoneCountry,
+    phoneNumber
+  );
+  const normalizedPhone =
+    currentPhoneCountry?.phoneCode && normalizedNationalPhone
+      ? `${currentPhoneCountry.phoneCode}${normalizedNationalPhone}`
+      : "";
 
   function isSelectedAcademicOption(option: AcademicOption) {
     return selectedAcademicItems.some(
@@ -521,51 +393,39 @@ export default function CreateSchoolPage() {
   }
 
   function toggleLearningMode(mode: string) {
-    setDetails((prev) => {
-      const exists = prev.learningModes.includes(mode);
+    const value = mode
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_") as LearningMode;
 
+    setDetails((prev) => {
+      const exists = prev.learningModes.includes(value);
       return {
         ...prev,
         learningModes: exists
-          ? prev.learningModes.filter((item) => item !== mode)
-          : [...prev.learningModes, mode],
+          ? prev.learningModes.filter((item) => item !== value)
+          : [...prev.learningModes, value],
       };
     });
-  }
-
-  function resetPhoneVerificationState() {
-    setPhoneVerified(false);
-    setPhoneCodeSent(false);
-    setVerificationCode("");
-    setPhoneNotice(null);
   }
 
   function handlePhoneChange(value: string) {
     const cleaned = normalizeNationalPhone(currentPhoneCountry, value);
     setPhoneNumber(cleaned);
     setPhoneError(validatePhone(currentPhoneCountry, cleaned));
-    resetPhoneVerificationState();
+    setPhoneVerified(false);
   }
 
   async function handleSendPhoneCode() {
-    setError(null);
-    setPhoneNotice(null);
-
     const validationError = validatePhone(currentPhoneCountry, phoneNumber);
     setPhoneError(validationError);
 
-    if (validationError) {
-      return;
-    }
+    if (validationError || !currentPhoneCountry?.phoneCode) return;
 
-    if (!currentPhoneCountry?.code || !currentPhoneCountry?.phoneCode) {
-      setError("Phone country information is incomplete.");
-      return;
-    }
+    setPhoneBusy(true);
+    setError(null);
 
     try {
-      setIsSendingCode(true);
-
       await sendPhoneCode({
         countryCode: currentPhoneCountry.code,
         dialCode: currentPhoneCountry.phoneCode,
@@ -574,132 +434,41 @@ export default function CreateSchoolPage() {
       });
 
       setPhoneCodeSent(true);
-      setPhoneVerified(false);
-      setPhoneNotice(`Verification code sent to ${normalizedPhone}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not send verification code."
-      );
+      setError(err instanceof Error ? err.message : "Failed to send verification code.");
     } finally {
-      setIsSendingCode(false);
+      setPhoneBusy(false);
     }
   }
 
   async function handleVerifyPhoneCode() {
-    setError(null);
-    setPhoneNotice(null);
-
-    if (!verificationCode.trim()) {
-      setError("Enter the verification code.");
+    if (!phoneCode.trim()) {
+      setError("Enter the verification code sent to your phone.");
       return;
     }
 
-    try {
-      setIsVerifyingCode(true);
+    setPhoneBusy(true);
+    setError(null);
 
+    try {
       await verifyPhoneCode({
         e164: normalizedPhone,
-        code: verificationCode.trim(),
+        code: phoneCode.trim(),
       });
 
       setPhoneVerified(true);
-      setPhoneNotice("Phone number verified successfully.");
     } catch (err) {
-      setPhoneVerified(false);
-      setError(
-        err instanceof Error ? err.message : "Could not verify phone number."
-      );
+      setError(err instanceof Error ? err.message : "Failed to verify phone code.");
     } finally {
-      setIsVerifyingCode(false);
-    }
-  }
-
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-
-    if (!institutionType || !selectedCountry || !schoolName.trim()) {
-      setError("Complete your institution setup before creating the workspace.");
-      return;
-    }
-
-    if (!addPhoneLater && !phoneVerified) {
-      setError("Verify your phone number before creating the workspace.");
-      setStep("security");
-      return;
-    }
-
-    setIsBusy(true);
-
-    try {
-      await saveBuildIdentity({
-        institutionType: mapInstitutionTypeForApi(institutionType),
-        institutionName: schoolName.trim(),
-        country: selectedCountry.name,
-        countryCode: selectedCountry.code,
-      });
-
-      await saveBuildAcademic({
-        label: getAcademicLabel(institutionType),
-        selectedItems: selectedAcademicItems.map((item) => item.label),
-        setUpLater: setAcademicLater,
-      });
-
-      await saveBuildDetails({
-        learningModes: details.learningModes,
-        genderAdmissionPolicy: details.genderAdmissionPolicy,
-        ownership: details.ownership,
-        levelType: details.levelType,
-      });
-
-      if (addPhoneLater) {
-        await skipPhoneStep();
-      }
-
-      const res = await fetch("/api/complete-build-placeholder", { method: "POST" }).catch(
-        () => null
-      );
-
-      clearOnboardingState();
-      router.push("/dashboard/control-center");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "We couldn’t create your workspace yet."
-      );
-    } finally {
-      setIsBusy(false);
+      setPhoneBusy(false);
     }
   }
 
   async function goNext() {
     setError(null);
 
-    if (step === "identity" && identityReady) {
-      if (!selectedAcademicItems.length && !setAcademicLater) {
-        if (
-          selectedCountry?.code === "KE" &&
-          (institutionType === "school" || institutionType === "academy")
-        ) {
-          setSelectedAcademicItems([
-            { label: "CBC", code: "KE_CBC", category: "national" },
-          ]);
-        } else if (
-          selectedCountry?.nativeCurriculumName &&
-          (institutionType === "school" || institutionType === "academy")
-        ) {
-          setSelectedAcademicItems([
-            {
-              label: selectedCountry.nativeCurriculumName,
-              code: selectedCountry.nativeCurriculumCode ?? undefined,
-              category: "national",
-            },
-          ]);
-        }
-      }
-
-      try {
+    try {
+      if (step === "identity" && identityReady && selectedCountry) {
         await saveBuildIdentity({
           institutionType: mapInstitutionTypeForApi(institutionType),
           institutionName: schoolName.trim(),
@@ -707,69 +476,74 @@ export default function CreateSchoolPage() {
           countryCode: selectedCountry.code,
         });
 
-        setStep("academic");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not save this step.");
-      }
-      return;
-    }
+        if (!selectedAcademicItems.length && !setAcademicLater) {
+          if (selectedCountry.code === "KE") {
+            const defaultCBC = academicOptions.find((item) => item.code === "KE_CBC");
+            if (defaultCBC) {
+              setSelectedAcademicItems([defaultCBC]);
+            }
+          } else if (selectedCountry.nativeCurriculumName) {
+            setSelectedAcademicItems([
+              {
+                label: selectedCountry.nativeCurriculumName,
+                category: "national",
+              },
+            ]);
+          }
+        }
 
-    if (step === "academic" && academicReady) {
-      try {
+        setStep("academic");
+        return;
+      }
+
+      if (step === "academic" && academicReady) {
         await saveBuildAcademic({
-          label: getAcademicLabel(institutionType),
+          label: academicLabel,
           selectedItems: selectedAcademicItems.map((item) => item.label),
           setUpLater: setAcademicLater,
         });
 
         setStep("details");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not save this step.");
+        return;
       }
-      return;
-    }
 
-    if (step === "details" && detailsReady) {
-      try {
+      if (step === "details" && detailsReady) {
         await saveBuildDetails({
           learningModes: details.learningModes,
-          genderAdmissionPolicy: details.genderAdmissionPolicy,
-          ownership: details.ownership,
-          levelType: details.levelType,
+          ownership: details.ownership || undefined,
+          levelType: details.levelType || undefined,
+          genderAdmissionPolicy:
+            details.genderAdmissionPolicy || undefined,
         });
 
         setStep("security");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not save this step.");
+        return;
       }
-      return;
-    }
 
-    if (step === "security") {
-      if (addPhoneLater) {
-        try {
+      if (step === "security") {
+        if (addPhoneLater) {
           await skipPhoneStep();
           setStep("review");
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Could not save this step.");
+          return;
         }
-        return;
+
+        const validationError = validatePhone(currentPhoneCountry, phoneNumber);
+        setPhoneError(validationError);
+
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
+
+        if (!phoneVerified) {
+          setError("Verify your phone number before continuing.");
+          return;
+        }
+
+        setStep("review");
       }
-
-      const validationError = validatePhone(currentPhoneCountry, phoneNumber);
-      setPhoneError(validationError);
-
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-
-      if (!phoneVerified) {
-        setError("Verify your phone number before continuing.");
-        return;
-      }
-
-      setStep("review");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save this step.");
     }
   }
 
@@ -797,6 +571,26 @@ export default function CreateSchoolPage() {
     }
 
     setStep("security");
+  }
+
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsBusy(true);
+
+    try {
+      await getBuildReview();
+      await completeBuildInstitution();
+      router.push("/dashboard/control-center");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We couldn’t create your workspace yet."
+      );
+    } finally {
+      setIsBusy(false);
+    }
   }
 
   if (isLoading) {
@@ -834,12 +628,10 @@ export default function CreateSchoolPage() {
               type="button"
               onClick={goNext}
               disabled={
-                isSendingCode ||
-                isVerifyingCode ||
                 (step === "identity" && !identityReady) ||
                 (step === "academic" && !academicReady) ||
                 (step === "details" && !detailsReady) ||
-                (step === "security" && !securityReady && !addPhoneLater)
+                (step === "security" && !securityReady)
               }
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -860,7 +652,11 @@ export default function CreateSchoolPage() {
         </div>
       }
     >
-      <form id="create-school-form" className="space-y-6" onSubmit={handleCreate}>
+      <form
+        id="create-school-form"
+        className="space-y-6"
+        onSubmit={handleCreate}
+      >
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             {step === "identity" ? (
@@ -879,8 +675,13 @@ export default function CreateSchoolPage() {
                   />
                 </div>
 
-                <div ref={pickerRef} className="skuully-glass-card rounded-[24px] p-5">
-                  <label className="mb-3 block text-sm text-white/70">Country</label>
+                <div
+                  ref={pickerRef}
+                  className="skuully-glass-card rounded-[24px] p-5"
+                >
+                  <label className="mb-3 block text-sm text-white/70">
+                    Country
+                  </label>
 
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
@@ -902,7 +703,8 @@ export default function CreateSchoolPage() {
                       <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-[20px] border border-white/10 bg-[#0a1022] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
                         {filteredCountries.length > 0 ? (
                           filteredCountries.map((country) => {
-                            const selected = selectedCountry?.code === country.code;
+                            const selected =
+                              selectedCountry?.code === country.code;
 
                             return (
                               <button
@@ -912,10 +714,19 @@ export default function CreateSchoolPage() {
                                   setSelectedCountry(country);
                                   setCountrySearch(country.name);
                                   setPickerOpen(false);
-                                  setPhoneCountryCode(country.code);
-                                  setPhoneNumber("");
-                                  setPhoneError(null);
-                                  resetPhoneVerificationState();
+
+                                  const matchedPhoneCountry = phoneCountries.find(
+                                    (item) => item.code === country.code
+                                  );
+
+                                  if (matchedPhoneCountry) {
+                                    setPhoneCountryCode(matchedPhoneCountry.code);
+                                    setPhoneNumber("");
+                                    setPhoneError(null);
+                                    setPhoneCode("");
+                                    setPhoneCodeSent(false);
+                                    setPhoneVerified(false);
+                                  }
                                 }}
                                 className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition ${
                                   selected
@@ -925,7 +736,6 @@ export default function CreateSchoolPage() {
                               >
                                 <div>
                                   <div className="text-sm font-medium text-white">
-                                    {country.flagEmoji ? `${country.flagEmoji} ` : ""}
                                     {country.name}
                                   </div>
                                   <div className="mt-1 text-xs text-white/45">
@@ -961,10 +771,10 @@ export default function CreateSchoolPage() {
 
                   <div className="min-w-0">
                     <h3 className="text-lg font-medium text-white">
-                      {getAcademicLabel(institutionType)}
+                      {academicLabel}
                     </h3>
                     <p className="mt-1 text-sm leading-7 text-white/55">
-                      {getAcademicDescription(institutionType)}
+                      {academicDescription}
                     </p>
                   </div>
                 </div>
@@ -980,9 +790,7 @@ export default function CreateSchoolPage() {
                       className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-4 text-white outline-none placeholder:text-white/25"
                       value={academicSearch}
                       onChange={(event) => setAcademicSearch(event.target.value)}
-                      placeholder={`Search ${getAcademicLabel(
-                        institutionType
-                      ).toLowerCase()}`}
+                      placeholder={`Search ${academicLabel.toLowerCase()}`}
                     />
                   </div>
 
@@ -1071,55 +879,30 @@ export default function CreateSchoolPage() {
                     <label className="mb-2 block text-sm text-white/70">
                       Learning modes
                     </label>
-
-                    <div className="grid gap-2">
-                      {detailOptions.learningModes.map((option) => {
-                        const selected = details.learningModes.includes(option);
+                    <div className="flex flex-wrap gap-2">
+                      {detailOptions.learningModes.map((mode) => {
+                        const value = mode
+                          .trim()
+                          .toUpperCase()
+                          .replace(/[\s-]+/g, "_") as LearningMode;
+                        const selected = details.learningModes.includes(value);
 
                         return (
                           <button
-                            key={option}
+                            key={mode}
                             type="button"
-                            onClick={() => toggleLearningMode(option)}
-                            className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+                            onClick={() => toggleLearningMode(mode)}
+                            className={`rounded-full border px-3 py-2 text-sm transition ${
                               selected
-                                ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                                : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                                ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)] text-white"
+                                : "border-white/10 bg-white/[0.03] text-white/75 hover:bg-white/[0.05]"
                             }`}
                           >
-                            <span className="text-sm text-white">
-                              {prettyLearningMode(option)}
-                            </span>
-                            {selected ? (
-                              <Check className="h-4 w-4 text-[#9bb4ff]" />
-                            ) : null}
+                            {mode}
                           </button>
                         );
                       })}
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm text-white/70">
-                      Admission policy
-                    </label>
-                    <select
-                      value={details.genderAdmissionPolicy}
-                      onChange={(event) =>
-                        setDetails((prev) => ({
-                          ...prev,
-                          genderAdmissionPolicy: event.target.value,
-                        }))
-                      }
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
-                    >
-                      <option value="">Select admission policy</option>
-                      {detailOptions.genderAdmissionPolicies.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
                   </div>
 
                   <div>
@@ -1167,6 +950,30 @@ export default function CreateSchoolPage() {
                       ))}
                     </select>
                   </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-white/70">
+                      Admissions policy
+                    </label>
+                    <select
+                      value={details.genderAdmissionPolicy}
+                      onChange={(event) =>
+                        setDetails((prev) => ({
+                          ...prev,
+                          genderAdmissionPolicy:
+                            event.target.value as GenderAdmissionPolicy | "",
+                        }))
+                      }
+                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                    >
+                      <option value="">Select admissions policy</option>
+                      {detailOptions.genderAdmissionPolicies.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -1194,7 +1001,6 @@ export default function CreateSchoolPage() {
                     onClick={() => {
                       setAddPhoneLater(true);
                       setPhoneError(null);
-                      resetPhoneVerificationState();
                     }}
                     className={`rounded-[20px] border px-4 py-4 text-left transition ${
                       addPhoneLater
@@ -1204,7 +1010,9 @@ export default function CreateSchoolPage() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-sm font-medium text-white">Add later</div>
+                        <div className="text-sm font-medium text-white">
+                          Add later
+                        </div>
                         <div className="mt-1 text-sm text-white/52">
                           Skip phone verification for now
                         </div>
@@ -1218,10 +1026,7 @@ export default function CreateSchoolPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setAddPhoneLater(false);
-                      resetPhoneVerificationState();
-                    }}
+                    onClick={() => setAddPhoneLater(false)}
                     className={`rounded-[20px] border px-4 py-4 text-left transition ${
                       !addPhoneLater
                         ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
@@ -1230,9 +1035,11 @@ export default function CreateSchoolPage() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-sm font-medium text-white">Add phone now</div>
+                        <div className="text-sm font-medium text-white">
+                          Add phone now
+                        </div>
                         <div className="mt-1 text-sm text-white/52">
-                          Use a verification number for future account protection
+                          Verify before continuing
                         </div>
                       </div>
 
@@ -1255,14 +1062,15 @@ export default function CreateSchoolPage() {
                               setPhoneCountryCode(event.target.value);
                               setPhoneError(null);
                               setPhoneNumber("");
-                              resetPhoneVerificationState();
+                              setPhoneCode("");
+                              setPhoneCodeSent(false);
+                              setPhoneVerified(false);
                             }}
                             className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
                           >
-                            {countries.map((item) => (
+                            {phoneCountries.map((item) => (
                               <option key={item.code} value={item.code}>
-                                {item.flagEmoji ? `${item.flagEmoji} ` : ""}
-                                {item.name} ({item.phoneCode ?? "N/A"})
+                                {item.flagEmoji ?? "🌍"} {item.name} ({item.phoneCode})
                               </option>
                             ))}
                           </select>
@@ -1281,7 +1089,9 @@ export default function CreateSchoolPage() {
                             <input
                               className="skuully-focus-ring w-full bg-transparent px-4 py-4 text-white outline-none placeholder:text-white/25"
                               value={phoneNumber}
-                              onChange={(event) => handlePhoneChange(event.target.value)}
+                              onChange={(event) =>
+                                handlePhoneChange(event.target.value)
+                              }
                               placeholder="Enter phone number"
                               inputMode="numeric"
                               type="tel"
@@ -1290,59 +1100,56 @@ export default function CreateSchoolPage() {
                         </div>
                       </div>
 
+                      {phoneError ? (
+                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                          {phoneError}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
+                          Final number: {normalizedPhone || "—"}
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap gap-3">
                         <button
                           type="button"
                           onClick={handleSendPhoneCode}
-                          disabled={isSendingCode}
+                          disabled={phoneBusy}
                           className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
                         >
-                          {isSendingCode ? "Sending..." : "Send code"}
+                          {phoneBusy ? "Sending..." : "Send code"}
                         </button>
 
                         {phoneVerified ? (
-                          <div className="flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200">
-                            Verified
+                          <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">
+                            Phone verified
                           </div>
                         ) : null}
                       </div>
 
                       {phoneCodeSent ? (
-                        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                          <input
-                            className="skuully-focus-ring rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
-                            value={verificationCode}
-                            onChange={(event) => setVerificationCode(event.target.value)}
-                            placeholder="Enter verification code"
-                            inputMode="numeric"
-                          />
+                        <div className="space-y-3">
+                          <div>
+                            <label className="mb-2 block text-sm text-white/70">
+                              Verification code
+                            </label>
+                            <input
+                              className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
+                              value={phoneCode}
+                              onChange={(event) => setPhoneCode(event.target.value)}
+                              placeholder="Enter SMS code"
+                              inputMode="numeric"
+                            />
+                          </div>
 
                           <button
                             type="button"
                             onClick={handleVerifyPhoneCode}
-                            disabled={isVerifyingCode}
-                            className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black disabled:opacity-50"
+                            disabled={phoneBusy}
+                            className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
                           >
-                            {isVerifyingCode ? "Verifying..." : "Verify code"}
+                            {phoneBusy ? "Verifying..." : "Verify code"}
                           </button>
-                        </div>
-                      ) : null}
-
-                      {phoneError ? (
-                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                          {phoneError}
-                        </div>
-                      ) : null}
-
-                      {phoneNotice ? (
-                        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
-                          {phoneNotice}
-                        </div>
-                      ) : null}
-
-                      {!phoneError ? (
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
-                          Final number: {normalizedPhone}
                         </div>
                       ) : null}
                     </div>
@@ -1353,7 +1160,9 @@ export default function CreateSchoolPage() {
 
             {step === "review" ? (
               <div className="skuully-glass-card rounded-[24px] p-5">
-                <h3 className="text-lg font-medium text-white">Review your workspace</h3>
+                <h3 className="text-lg font-medium text-white">
+                  Review your workspace
+                </h3>
 
                 <div className="mt-5 space-y-3 text-sm text-white/55">
                   <p>
@@ -1361,16 +1170,15 @@ export default function CreateSchoolPage() {
                     {prettyInstitutionLabel(institutionType)}
                   </p>
                   <p>
-                    <span className="text-white">Name:</span> {schoolName.trim()}
+                    <span className="text-white">Name:</span>{" "}
+                    {schoolName.trim()}
                   </p>
                   <p>
                     <span className="text-white">Country:</span>{" "}
                     {selectedCountry?.name}
                   </p>
                   <p>
-                    <span className="text-white">
-                      {getAcademicLabel(institutionType)}:
-                    </span>{" "}
+                    <span className="text-white">{academicLabel}:</span>{" "}
                     {setAcademicLater
                       ? "Will set later"
                       : selectedAcademicItems.length
@@ -1380,18 +1188,20 @@ export default function CreateSchoolPage() {
                   <p>
                     <span className="text-white">Learning modes:</span>{" "}
                     {details.learningModes.length
-                      ? details.learningModes.map(prettyLearningMode).join(", ")
-                      : "None selected"}
+                      ? details.learningModes.join(", ")
+                      : "None"}
                   </p>
                   <p>
-                    <span className="text-white">Admission policy:</span>{" "}
-                    {prettyGenderPolicy(details.genderAdmissionPolicy)}
+                    <span className="text-white">Ownership:</span>{" "}
+                    {details.ownership}
                   </p>
                   <p>
-                    <span className="text-white">Ownership:</span> {details.ownership}
+                    <span className="text-white">Level type:</span>{" "}
+                    {details.levelType}
                   </p>
                   <p>
-                    <span className="text-white">Level type:</span> {details.levelType}
+                    <span className="text-white">Admissions policy:</span>{" "}
+                    {details.genderAdmissionPolicy || "Not set"}
                   </p>
                   <p>
                     <span className="text-white">Verification phone:</span>{" "}
@@ -1412,7 +1222,10 @@ export default function CreateSchoolPage() {
               label="Institution type"
               value={prettyInstitutionLabel(institutionType)}
             />
-            <MiniInfo label="Country" value={selectedCountry?.name ?? "Pending"} />
+            <MiniInfo
+              label="Country"
+              value={selectedCountry?.name ?? "Pending"}
+            />
 
             <div className="skuully-glass-card rounded-[24px] p-5">
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
@@ -1425,7 +1238,8 @@ export default function CreateSchoolPage() {
 
               <div className="mt-4 space-y-3 text-sm text-white/55">
                 <p>
-                  <span className="text-white">Step:</span> {currentStep} of {totalSteps}
+                  <span className="text-white">Step:</span> {currentStep} of{" "}
+                  {totalSteps}
                 </p>
                 <p>
                   <span className="text-white">Suggested default:</span>{" "}
@@ -1447,7 +1261,9 @@ export default function CreateSchoolPage() {
                 <Globe2 className="h-4 w-4 text-white/72" />
               </div>
 
-              <h3 className="mt-4 text-lg font-medium text-white">Smart setup</h3>
+              <h3 className="mt-4 text-lg font-medium text-white">
+                Smart setup
+              </h3>
 
               <p className="mt-2 text-sm leading-7 text-white/55">
                 Skuully is using your institution type and country to shape the most relevant setup path for you.

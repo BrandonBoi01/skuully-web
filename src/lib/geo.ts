@@ -17,78 +17,34 @@ export type GeoCountry = {
   phoneMaxLength?: number | null;
   nativeCurriculumName?: string | null;
   nativeCurriculumCode?: string | null;
-};
-
-export type GeoSubdivision = {
-  id: string;
-  code?: string | null;
-  name: string;
-  type?: string | null;
-};
-
-export type GeoCity = {
-  id: string;
-  name: string;
-  subdivisionId?: string | null;
-};
-
-type CountriesResponse = {
-  items: GeoCountry[];
-};
-
-type SubdivisionsResponse = {
-  items: GeoSubdivision[];
-};
-
-type CitiesResponse = {
-  items: GeoCity[];
+  isActive: boolean;
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     credentials: "include",
-    cache: "no-store",
   });
 
+  const text = await res.text();
+
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
     throw new Error(text || "Request failed");
   }
 
-  return (await res.json()) as T;
+  return text ? (JSON.parse(text) as T) : ({} as T);
 }
 
-export async function getGeoCountries(search?: string) {
+export async function getGeoCountries(q?: string) {
   const params = new URLSearchParams();
+  if (q?.trim()) params.set("q", q.trim());
 
-  if (search?.trim()) {
-    params.set("search", search.trim());
-  }
-
-  const query = params.toString();
-  return fetchJson<CountriesResponse>(
-    `${API_URL}/geo/countries${query ? `?${query}` : ""}`
+  return fetchJson<{ items: GeoCountry[]; total: number }>(
+    `${API_URL}/geo/countries?${params.toString()}`
   );
 }
 
-export async function getGeoCountrySubdivisions(countryCode: string) {
-  return fetchJson<SubdivisionsResponse>(
-    `${API_URL}/geo/countries/${encodeURIComponent(countryCode)}/subdivisions`
-  );
-}
-
-export async function getGeoCountryCities(countryCode: string, subdivisionId?: string) {
-  const params = new URLSearchParams();
-
-  if (subdivisionId) {
-    params.set("subdivisionId", subdivisionId);
-  }
-
-  const query = params.toString();
-
-  return fetchJson<CitiesResponse>(
-    `${API_URL}/geo/countries/${encodeURIComponent(countryCode)}/cities${
-      query ? `?${query}` : ""
-    }`
+export async function getPhoneCountries() {
+  return fetchJson<{ items: GeoCountry[]; total: number }>(
+    `${API_URL}/geo/countries/phone`
   );
 }
