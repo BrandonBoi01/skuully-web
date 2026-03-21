@@ -44,8 +44,10 @@ type MeResponse = {
   id: string;
   fullName: string;
   email: string;
+  phone?: string | null;
   skuullyId?: string | null;
   emailVerified?: boolean;
+  phoneVerified?: boolean;
   context?: {
     schoolId?: string | null;
     programId?: string | null;
@@ -123,6 +125,7 @@ function normalizeDigits(value: string) {
 
 function normalizeNationalPhone(country: PhoneCountry | null, value: string) {
   let digits = normalizeDigits(value);
+
   if (!digits || !country?.phoneCode) return digits;
 
   const dialDigits = country.phoneCode.replace("+", "");
@@ -252,27 +255,39 @@ export default function CreateSchoolPage() {
         setMe(meResponse);
         setCountries(countriesResponse.items);
 
-        setPhoneCountries(
-          phoneCountriesResponse.items.map((item) => ({
-            code: item.code,
-            name: item.name,
-            flagEmoji: item.flagEmoji,
-            phoneCode: item.phoneCode,
-            phoneMinLength: item.phoneMinLength,
-            phoneMaxLength: item.phoneMaxLength,
-          }))
-        );
+        const mappedPhoneCountries = phoneCountriesResponse.items.map((item) => ({
+          code: item.code,
+          name: item.name,
+          flagEmoji: item.flagEmoji,
+          phoneCode: item.phoneCode,
+          phoneMinLength: item.phoneMinLength,
+          phoneMaxLength: item.phoneMaxLength,
+        }));
 
-        const kenya = countriesResponse.items.find((item) => item.code === "KE") ?? null;
-        if (kenya) {
-          setSelectedCountry(kenya);
-          setCountrySearch(kenya.name);
+        setPhoneCountries(mappedPhoneCountries);
+
+        const defaultCountry =
+          countriesResponse.items.find((item) => item.code === "KE") ??
+          countriesResponse.items[0] ??
+          null;
+
+        if (defaultCountry) {
+          setSelectedCountry(defaultCountry);
+          setCountrySearch(defaultCountry.name);
         }
 
-        const phoneKenya =
-          phoneCountriesResponse.items.find((item) => item.code === "KE") ?? null;
-        if (phoneKenya) {
-          setPhoneCountryCode(phoneKenya.code);
+        const defaultPhoneCountry =
+          mappedPhoneCountries.find((item) => item.code === (defaultCountry?.code ?? "KE")) ??
+          mappedPhoneCountries.find((item) => item.code === "KE") ??
+          mappedPhoneCountries[0] ??
+          null;
+
+        if (defaultPhoneCountry) {
+          setPhoneCountryCode(defaultPhoneCountry.code);
+        }
+
+        if (meResponse.phoneVerified) {
+          setPhoneVerified(true);
         }
 
         setIsLoading(false);
@@ -375,10 +390,6 @@ export default function CreateSchoolPage() {
     details.learningModes.length > 0 &&
     !!details.ownership &&
     !!details.levelType;
-  const securityReady =
-    addPhoneLater ||
-    (phoneVerified && !validatePhone(currentPhoneCountry, phoneNumber));
-
   const normalizedNationalPhone = normalizeNationalPhone(
     currentPhoneCountry,
     phoneNumber
@@ -388,6 +399,10 @@ export default function CreateSchoolPage() {
     currentPhoneCountry?.phoneCode && normalizedNationalPhone
       ? `${currentPhoneCountry.phoneCode}${normalizedNationalPhone}`
       : "";
+
+  const securityReady =
+    addPhoneLater ||
+    (phoneVerified && !validatePhone(currentPhoneCountry, phoneNumber));
 
   function isSelectedAcademicOption(option: AcademicOption) {
     return selectedAcademicItems.some(
@@ -474,36 +489,36 @@ export default function CreateSchoolPage() {
   }
 
   async function handleVerifyPhoneCode() {
-  if (!phoneCode.trim()) {
-    setError("Enter the verification code sent to your phone.");
-    return;
-  }
-
-  setPhoneBusy(true);
-  setError(null);
-
-  try {
-    const result = await verifyPhoneCode({
-      e164: normalizedPhone,
-      code: phoneCode.trim(),
-    });
-
-    if (result.verified) {
-      setPhoneVerified(true);
-      setPhoneError(null);
-    } else {
-      setPhoneVerified(false);
-      setError("Invalid verification code.");
+    if (!phoneCode.trim()) {
+      setError("Enter the verification code sent to your phone.");
+      return;
     }
-  } catch (err) {
-    setPhoneVerified(false);
-    setError(
-      err instanceof Error ? err.message : "Failed to verify phone code."
-    );
-  } finally {
-    setPhoneBusy(false);
+
+    setPhoneBusy(true);
+    setError(null);
+
+    try {
+      const result = await verifyPhoneCode({
+        e164: normalizedPhone,
+        code: phoneCode.trim(),
+      });
+
+      if (result.verified || result.phoneVerified) {
+        setPhoneVerified(true);
+        setPhoneError(null);
+      } else {
+        setPhoneVerified(false);
+        setError("Invalid verification code.");
+      }
+    } catch (err) {
+      setPhoneVerified(false);
+      setError(
+        err instanceof Error ? err.message : "Failed to verify phone code."
+      );
+    } finally {
+      setPhoneBusy(false);
+    }
   }
-}
 
   async function goNext() {
     setError(null);

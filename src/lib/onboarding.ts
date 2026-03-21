@@ -1,5 +1,31 @@
 import { API_URL } from "@/lib/api";
 
+import type {
+  BuildInstitutionType,
+  JoinRole,
+  OnboardingRoute,
+} from "@/lib/onboarding-flow";
+
+function mapRouteToApi(route: OnboardingRoute) {
+  if (route === "build_institution") return "BUILD_INSTITUTION";
+  if (route === "join_institution") return "JOIN_INSTITUTION";
+  return "EXPLORE_SKUULLY";
+}
+
+function mapInstitutionTypeToApi(type: BuildInstitutionType) {
+  if (type === "school") return "SCHOOL";
+  if (type === "college") return "COLLEGE";
+  if (type === "university") return "UNIVERSITY";
+  if (type === "polytechnic") return "POLYTECHNIC";
+  if (type === "vocational") return "VOCATIONAL";
+  if (type === "academy") return "ACADEMY";
+  return "TRAINING_CENTER";
+}
+
+function mapJoinRoleToApi(role: JoinRole) {
+  return role.toUpperCase();
+}
+
 async function parseResponse<T>(res: Response): Promise<T> {
   const text = await res.text();
 
@@ -8,10 +34,9 @@ async function parseResponse<T>(res: Response): Promise<T> {
 
     try {
       const parsed = text ? JSON.parse(text) : null;
-      message =
-        Array.isArray(parsed?.message)
-          ? parsed.message[0]
-          : parsed?.message || text || message;
+      message = Array.isArray(parsed?.message)
+        ? parsed.message[0]
+        : parsed?.message || text || message;
     } catch {
       message = text || message;
     }
@@ -35,6 +60,36 @@ async function api<T>(url: string, init?: RequestInit) {
   return parseResponse<T>(res);
 }
 
+export async function setOnboardingRoute(route: OnboardingRoute) {
+  return api<{ message: string; route: string; currentStep: string }>(
+    "/onboarding/route",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        route: mapRouteToApi(route),
+      }),
+    }
+  );
+}
+
+/* ---------------- SHARED TYPES ---------------- */
+
+export type AcademicOption = {
+  label: string;
+  code?: string;
+  category?: string;
+  recommended?: boolean;
+};
+
+export type GenderAdmissionPolicy = "BOYS_ONLY" | "GIRLS_ONLY" | "MIXED";
+
+export type LearningMode =
+  | "DAY"
+  | "BOARDING"
+  | "IN_PERSON"
+  | "ONLINE"
+  | "HYBRID";
+
 /* ---------------- BUILD INSTITUTION ---------------- */
 
 export async function getMyOnboarding() {
@@ -42,7 +97,24 @@ export async function getMyOnboarding() {
     route: string | null;
     currentStep: string | null;
     completedAt: string | null;
-    draft: any;
+    draft: {
+      institutionType?: string | null;
+      institutionName?: string | null;
+      country?: string | null;
+      countryCode?: string | null;
+      academicLabel?: string | null;
+      academicItems?: string[];
+      academicSetLater?: boolean;
+      learningModes?: string[];
+      ownership?: string | null;
+      levelType?: string | null;
+      genderAdmissionPolicy?: string | null;
+      phoneCountryCode?: string | null;
+      phoneDialCode?: string | null;
+      phoneNational?: string | null;
+      phoneE164?: string | null;
+      phoneSetLater?: boolean;
+    } | null;
   }>("/onboarding/me");
 }
 
@@ -61,25 +133,6 @@ export async function saveBuildIdentity(input: {
   );
 }
 
-export type AcademicOption = {
-  label: string;
-  code?: string;
-  category?: string;
-  recommended?: boolean;
-};
-
-export type GenderAdmissionPolicy =
-  | "BOYS_ONLY"
-  | "GIRLS_ONLY"
-  | "MIXED";
-
-export type LearningMode =
-  | "DAY"
-  | "BOARDING"
-  | "IN_PERSON"
-  | "ONLINE"
-  | "HYBRID";
-
 export async function getAcademicOptions(
   institutionType: string,
   countryCode: string
@@ -96,6 +149,7 @@ export async function getAcademicOptions(
 export async function saveBuildAcademic(input: {
   label?: string;
   selectedItems: string[];
+  selectedCodes?: string[];
   setUpLater: boolean;
 }) {
   return api<{ message: string; currentStep: string }>(
@@ -171,12 +225,12 @@ export async function completeBuildInstitution() {
 export async function searchJoinInstitutions(input: {
   query: string;
   mode: "name" | "skuully_id";
-  role: string;
+  role: JoinRole;
 }) {
   const params = new URLSearchParams({
     query: input.query,
     mode: input.mode,
-    role: input.role,
+    role: mapJoinRoleToApi(input.role),
   });
 
   return api<{
@@ -193,7 +247,7 @@ export async function searchJoinInstitutions(input: {
 
 export async function submitJoinInviteCode(input: {
   code: string;
-  role: string;
+  role: JoinRole;
 }) {
   return api<{
     message: string;
@@ -204,17 +258,23 @@ export async function submitJoinInviteCode(input: {
     };
   }>("/onboarding/join/invite", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      code: input.code,
+      role: mapJoinRoleToApi(input.role),
+    }),
   });
 }
 
 export async function selectJoinInstitution(input: {
   schoolId: string;
-  role: string;
+  role: JoinRole;
 }) {
   return api<{ message: string }>("/onboarding/join/select", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      schoolId: input.schoolId,
+      role: mapJoinRoleToApi(input.role),
+    }),
   });
 }
 
@@ -229,26 +289,35 @@ export async function completeJoinInstitution() {
 export async function saveExploreIdentity(input: {
   skuullyId: string;
 }) {
-  return api<{ message: string }>("/onboarding/explore/identity", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return api<{ message: string; currentStep?: string }>(
+    "/onboarding/explore/identity",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
 }
 
 export async function saveExploreProfile(input: {
   fullName: string;
   headline?: string;
 }) {
-  return api<{ message: string }>("/onboarding/explore/profile", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return api<{ message: string; currentStep?: string }>(
+    "/onboarding/explore/profile",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
 }
 
 export async function completeExploreSkuully() {
-  return api<{ message: string }>("/onboarding/explore/complete", {
-    method: "POST",
-  });
+  return api<{ message: string; active?: unknown }>(
+    "/onboarding/explore/complete",
+    {
+      method: "POST",
+    }
+  );
 }
 
 /* ---------------- SHARED PHONE STEP ---------------- */
@@ -260,7 +329,7 @@ export async function sendPhoneCode(input: {
   e164: string;
 }) {
   return api<{ message: string; expiresInSeconds?: number }>(
-    "/onboarding/phone/send-code",
+    "/onboarding/build/security/send-phone-code",
     {
       method: "POST",
       body: JSON.stringify(input),
@@ -272,17 +341,27 @@ export async function verifyPhoneCode(input: {
   e164: string;
   code: string;
 }) {
-  return api<{ message: string; verified: boolean; phone?: string }>(
-    "/onboarding/phone/verify",
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    }
-  );
+  return api<{
+    message: string;
+    verified: boolean;
+    phone?: string;
+    phoneVerified?: boolean;
+  }>("/onboarding/build/security/verify-phone-code", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function skipPhoneStep() {
-  return api<{ message: string }>("/onboarding/phone/skip", {
+  return api<{ message: string }>("/onboarding/build/security/skip", {
     method: "POST",
   });
 }
+
+/* ---------------- OPTIONAL HELPERS ---------------- */
+
+export {
+  mapRouteToApi,
+  mapInstitutionTypeToApi,
+  mapJoinRoleToApi,
+};
