@@ -1,24 +1,5 @@
 import { API_URL } from "@/lib/api";
 
-export type OnboardingRoute =
-  | "BUILD_INSTITUTION"
-  | "JOIN_INSTITUTION"
-  | "EXPLORE_SKUULLY";
-
-export type BuildInstitutionType =
-  | "school"
-  | "college"
-  | "university"
-  | "polytechnic"
-  | "vocational"
-  | "academy"
-  | "training_center";
-
-export type GenderAdmissionPolicy =
-  | "BOYS_ONLY"
-  | "GIRLS_ONLY"
-  | "MIXED";
-
 export type LearningMode =
   | "DAY"
   | "BOARDING"
@@ -26,36 +7,15 @@ export type LearningMode =
   | "ONLINE"
   | "HYBRID";
 
-export type OnboardingDraft = {
-  institutionType?: string | null;
-  institutionName?: string | null;
-  country?: string | null;
-  countryCode?: string | null;
-  academicLabel?: string | null;
-  academicItems?: string[];
-  academicSetLater?: boolean;
-  learningModes?: LearningMode[];
-  ownership?: string | null;
-  levelType?: string | null;
-  genderAdmissionPolicy?: GenderAdmissionPolicy | null;
-  phoneCountryCode?: string | null;
-  phoneDialCode?: string | null;
-  phoneNational?: string | null;
-  phoneE164?: string | null;
-  phoneSetLater?: boolean;
-};
-
-export type MyOnboardingResponse = {
-  route: OnboardingRoute | null;
-  currentStep: string | null;
-  completedAt: string | null;
-  draft: OnboardingDraft | null;
-};
+export type GenderAdmissionPolicy =
+  | "BOYS_ONLY"
+  | "GIRLS_ONLY"
+  | "MIXED";
 
 export type AcademicOption = {
   label: string;
-  code?: string;
-  category?: string;
+  code?: string | null;
+  category?: string | null;
   recommended?: boolean;
 };
 
@@ -75,7 +35,39 @@ export type DetailOptionsResponse = {
   }>;
 };
 
-export type ReviewResponse = {
+export type SaveBuildIdentityInput = {
+  institutionType: string;
+  institutionName: string;
+  country: string;
+  countryCode: string;
+};
+
+export type SaveBuildAcademicInput = {
+  label?: string;
+  selectedItems: string[];
+  setUpLater: boolean;
+};
+
+export type SaveBuildDetailsInput = {
+  learningModes: LearningMode[];
+  genderAdmissionPolicy?: GenderAdmissionPolicy;
+  ownership?: string;
+  levelType?: string;
+};
+
+export type SendPhoneCodeInput = {
+  countryCode: string;
+  dialCode: string;
+  nationalNumber: string;
+  e164: string;
+};
+
+export type VerifyPhoneCodeInput = {
+  e164: string;
+  code: string;
+};
+
+export type BuildReviewResponse = {
   institutionType?: string | null;
   institutionName?: string | null;
   country?: string | null;
@@ -91,14 +83,36 @@ export type ReviewResponse = {
   phoneSetLater?: boolean;
 };
 
+function getCsrfTokenFromCookie() {
+  if (typeof document === "undefined") return null;
+
+  const cookie = document.cookie
+    .split("; ")
+    .find((item) => item.startsWith("skuully_csrf_token="));
+
+  if (!cookie) return null;
+
+  return decodeURIComponent(cookie.split("=")[1]);
+}
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method || "GET").toUpperCase();
+  const csrfToken = getCsrfTokenFromCookie();
+
+  const headers: HeadersInit = {
+    ...(init?.headers ?? {}),
+    ...(method !== "GET" &&
+    method !== "HEAD" &&
+    method !== "OPTIONS" &&
+    csrfToken
+      ? { "X-CSRF-Token": csrfToken }
+      : {}),
+  };
+
   const res = await fetch(url, {
     ...init,
+    headers,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
   });
 
   const text = await res.text();
@@ -123,29 +137,52 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export async function getMyOnboarding() {
-  return fetchJson<MyOnboardingResponse>(`${API_URL}/onboarding/me`);
+  return fetchJson<{
+    route: string | null;
+    currentStep: string | null;
+    completedAt: string | null;
+    draft: {
+      institutionType?: string | null;
+      institutionName?: string | null;
+      country?: string | null;
+      countryCode?: string | null;
+      academicLabel?: string | null;
+      academicItems?: string[];
+      academicSetLater?: boolean;
+      learningModes?: LearningMode[];
+      ownership?: string | null;
+      levelType?: string | null;
+      genderAdmissionPolicy?: GenderAdmissionPolicy | null;
+      phoneCountryCode?: string | null;
+      phoneDialCode?: string | null;
+      phoneNational?: string | null;
+      phoneE164?: string | null;
+      phoneSetLater?: boolean;
+    } | null;
+  }>(`${API_URL}/onboarding/me`);
 }
 
-export async function setOnboardingRoute(route: OnboardingRoute) {
-  return fetchJson<{ message: string; route: OnboardingRoute; currentStep: string }>(
+export async function setOnboardingRoute(route: string) {
+  return fetchJson<{ message: string; route: string; currentStep: string }>(
     `${API_URL}/onboarding/route`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ route }),
     }
   );
 }
 
-export async function saveBuildIdentity(input: {
-  institutionType: string;
-  institutionName: string;
-  country: string;
-  countryCode: string;
-}) {
+export async function saveBuildIdentity(input: SaveBuildIdentityInput) {
   return fetchJson<{ message: string; currentStep: string }>(
     `${API_URL}/onboarding/build/identity`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(input),
     }
   );
@@ -165,80 +202,80 @@ export async function getAcademicOptions(
   );
 }
 
-export async function saveBuildAcademic(input: {
-  label?: string;
-  selectedItems?: string[];
-  setUpLater?: boolean;
-}) {
+export async function saveBuildAcademic(input: SaveBuildAcademicInput) {
   return fetchJson<{ message: string; currentStep: string }>(
     `${API_URL}/onboarding/build/academic`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(input),
     }
   );
 }
 
 export async function getDetailOptions(institutionType: string) {
-  const params = new URLSearchParams({ institutionType });
+  const params = new URLSearchParams({
+    institutionType,
+  });
 
   return fetchJson<DetailOptionsResponse>(
     `${API_URL}/onboarding/build/detail-options?${params.toString()}`
   );
 }
 
-export async function saveBuildDetails(input: {
-  learningModes: LearningMode[];
-  ownership?: string;
-  levelType?: string;
-  genderAdmissionPolicy?: GenderAdmissionPolicy;
-}) {
+export async function saveBuildDetails(input: SaveBuildDetailsInput) {
   return fetchJson<{ message: string; currentStep: string }>(
     `${API_URL}/onboarding/build/details`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(input),
     }
   );
 }
 
-export async function sendPhoneCode(input: {
-  countryCode: string;
-  dialCode: string;
-  nationalNumber: string;
-  e164: string;
-}) {
+export async function sendPhoneCode(input: SendPhoneCodeInput) {
   return fetchJson<{ message: string; expiresInSeconds: number }>(
-    `${API_URL}/onboarding/build/phone/send-code`,
+    `${API_URL}/onboarding/build/security/send-phone-code`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(input),
     }
   );
 }
 
-export async function verifyPhoneCode(input: { e164: string; code: string }) {
-  return fetchJson<{ message: string; phoneVerified: boolean; phone: string }>(
-    `${API_URL}/onboarding/build/phone/verify`,
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    }
-  );
+export async function verifyPhoneCode(input: VerifyPhoneCodeInput) {
+  return fetchJson<{
+    message: string;
+    phoneVerified: boolean;
+    phone: string;
+  }>(`${API_URL}/onboarding/build/security/verify-phone-code`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
 }
 
 export async function skipPhoneStep() {
   return fetchJson<{ message: string }>(
-    `${API_URL}/onboarding/build/phone/skip`,
+    `${API_URL}/onboarding/build/security/skip`,
     {
       method: "POST",
-      body: JSON.stringify({}),
     }
   );
 }
 
 export async function getBuildReview() {
-  return fetchJson<ReviewResponse>(`${API_URL}/onboarding/build/review`);
+  return fetchJson<BuildReviewResponse>(`${API_URL}/onboarding/build/review`);
 }
 
 export async function completeBuildInstitution() {
@@ -250,6 +287,5 @@ export async function completeBuildInstitution() {
     active?: unknown;
   }>(`${API_URL}/onboarding/build/complete`, {
     method: "POST",
-    body: JSON.stringify({}),
   });
 }

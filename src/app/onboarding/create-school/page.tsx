@@ -148,6 +148,14 @@ function validatePhone(country: PhoneCountry | null, value: string) {
   return null;
 }
 
+function formatLearningMode(mode: string) {
+  return mode
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export default function CreateSchoolPage() {
   const router = useRouter();
   const pickerRef = useRef<HTMLDivElement | null>(null);
@@ -240,6 +248,7 @@ export default function CreateSchoolPage() {
         setInstitutionType(buildType);
         setMe(meResponse);
         setCountries(countriesResponse.items);
+
         setPhoneCountries(
           phoneCountriesResponse.items.map((item) => ({
             code: item.code,
@@ -288,9 +297,10 @@ export default function CreateSchoolPage() {
         setAcademicLabel(academic.label);
         setAcademicDescription(academic.description);
         setAcademicOptions(academic.options);
-
         setDetailOptions(detail);
-      } catch {}
+      } catch {
+        setError("We couldn’t load setup options right now.");
+      }
     }
 
     void loadAcademicAndDetails();
@@ -355,6 +365,7 @@ export default function CreateSchoolPage() {
     currentPhoneCountry,
     phoneNumber
   );
+
   const normalizedPhone =
     currentPhoneCountry?.phoneCode && normalizedNationalPhone
       ? `${currentPhoneCountry.phoneCode}${normalizedNationalPhone}`
@@ -400,6 +411,7 @@ export default function CreateSchoolPage() {
 
     setDetails((prev) => {
       const exists = prev.learningModes.includes(value);
+
       return {
         ...prev,
         learningModes: exists
@@ -512,8 +524,7 @@ export default function CreateSchoolPage() {
           learningModes: details.learningModes,
           ownership: details.ownership || undefined,
           levelType: details.levelType || undefined,
-          genderAdmissionPolicy:
-            details.genderAdmissionPolicy || undefined,
+          genderAdmissionPolicy: details.genderAdmissionPolicy || undefined,
         });
 
         setStep("security");
@@ -1188,7 +1199,7 @@ export default function CreateSchoolPage() {
                   <p>
                     <span className="text-white">Learning modes:</span>{" "}
                     {details.learningModes.length
-                      ? details.learningModes.join(", ")
+                      ? details.learningModes.map(formatLearningMode).join(", ")
                       : "None"}
                   </p>
                   <p>
@@ -1201,7 +1212,9 @@ export default function CreateSchoolPage() {
                   </p>
                   <p>
                     <span className="text-white">Admissions policy:</span>{" "}
-                    {details.genderAdmissionPolicy || "Not set"}
+                    {details.genderAdmissionPolicy
+                      ? formatLearningMode(details.genderAdmissionPolicy)
+                      : "Not set"}
                   </p>
                   <p>
                     <span className="text-white">Verification phone:</span>{" "}
