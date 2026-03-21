@@ -29,7 +29,11 @@ import {
   type GenderAdmissionPolicy,
   type LearningMode,
 } from "@/lib/onboarding";
-import { getGeoCountries, getPhoneCountries, type GeoCountry } from "@/lib/geo";
+import {
+  getGeoCountries,
+  getPhoneCountries,
+  type GeoCountry,
+} from "@/lib/geo";
 import {
   readOnboardingState,
   type BuildInstitutionType,
@@ -148,8 +152,8 @@ function validatePhone(country: PhoneCountry | null, value: string) {
   return null;
 }
 
-function formatLearningMode(mode: string) {
-  return mode
+function formatEnumLabel(value: string) {
+  return value
     .toLowerCase()
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -163,7 +167,8 @@ export default function CreateSchoolPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [institutionType, setInstitutionType] = useState<BuildInstitutionType | null>(null);
+  const [institutionType, setInstitutionType] =
+    useState<BuildInstitutionType | null>(null);
   const [step, setStep] = useState<BuildStep>("identity");
 
   const [schoolName, setSchoolName] = useState("");
@@ -208,6 +213,7 @@ export default function CreateSchoolPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneBusy, setPhoneBusy] = useState(false);
 
+  const [review, setReview] = useState<Awaited<ReturnType<typeof getBuildReview>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const currentPhoneCountry =
@@ -216,11 +222,8 @@ export default function CreateSchoolPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [meResponse, countriesResponse, phoneCountriesResponse] = await Promise.all([
-          getMe(),
-          getGeoCountries(),
-          getPhoneCountries(),
-        ]);
+        const [meResponse, countriesResponse, phoneCountriesResponse] =
+          await Promise.all([getMe(), getGeoCountries(), getPhoneCountries()]);
 
         if (!meResponse) {
           router.replace("/login");
@@ -305,6 +308,21 @@ export default function CreateSchoolPage() {
 
     void loadAcademicAndDetails();
   }, [institutionType, selectedCountry]);
+
+  useEffect(() => {
+    async function loadReview() {
+      if (step !== "review") return;
+
+      try {
+        const data = await getBuildReview();
+        setReview(data);
+      } catch {
+        setError("We couldn’t load the review step.");
+      }
+    }
+
+    void loadReview();
+  }, [step]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -447,34 +465,45 @@ export default function CreateSchoolPage() {
 
       setPhoneCodeSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send verification code.");
+      setError(
+        err instanceof Error ? err.message : "Failed to send verification code."
+      );
     } finally {
       setPhoneBusy(false);
     }
   }
 
   async function handleVerifyPhoneCode() {
-    if (!phoneCode.trim()) {
-      setError("Enter the verification code sent to your phone.");
-      return;
-    }
-
-    setPhoneBusy(true);
-    setError(null);
-
-    try {
-      await verifyPhoneCode({
-        e164: normalizedPhone,
-        code: phoneCode.trim(),
-      });
-
-      setPhoneVerified(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to verify phone code.");
-    } finally {
-      setPhoneBusy(false);
-    }
+  if (!phoneCode.trim()) {
+    setError("Enter the verification code sent to your phone.");
+    return;
   }
+
+  setPhoneBusy(true);
+  setError(null);
+
+  try {
+    const result = await verifyPhoneCode({
+      e164: normalizedPhone,
+      code: phoneCode.trim(),
+    });
+
+    if (result.verified) {
+      setPhoneVerified(true);
+      setPhoneError(null);
+    } else {
+      setPhoneVerified(false);
+      setError("Invalid verification code.");
+    }
+  } catch (err) {
+    setPhoneVerified(false);
+    setError(
+      err instanceof Error ? err.message : "Failed to verify phone code."
+    );
+  } finally {
+    setPhoneBusy(false);
+  }
+}
 
   async function goNext() {
     setError(null);
@@ -590,7 +619,6 @@ export default function CreateSchoolPage() {
     setIsBusy(true);
 
     try {
-      await getBuildReview();
       await completeBuildInstitution();
       router.push("/dashboard/control-center");
     } catch (err) {
@@ -909,7 +937,7 @@ export default function CreateSchoolPage() {
                                 : "border-white/10 bg-white/[0.03] text-white/75 hover:bg-white/[0.05]"
                             }`}
                           >
-                            {mode}
+                            {formatEnumLabel(value)}
                           </button>
                         );
                       })}
@@ -1182,43 +1210,51 @@ export default function CreateSchoolPage() {
                   </p>
                   <p>
                     <span className="text-white">Name:</span>{" "}
-                    {schoolName.trim()}
+                    {review?.institutionName ?? schoolName.trim()}
                   </p>
                   <p>
                     <span className="text-white">Country:</span>{" "}
-                    {selectedCountry?.name}
+                    {review?.country ?? selectedCountry?.name}
                   </p>
                   <p>
                     <span className="text-white">{academicLabel}:</span>{" "}
-                    {setAcademicLater
+                    {review?.academicSetLater
                       ? "Will set later"
+                      : review?.academicItems?.length
+                      ? review.academicItems.join(", ")
                       : selectedAcademicItems.length
                       ? selectedAcademicItems.map((item) => item.label).join(", ")
                       : "None selected"}
                   </p>
                   <p>
                     <span className="text-white">Learning modes:</span>{" "}
-                    {details.learningModes.length
-                      ? details.learningModes.map(formatLearningMode).join(", ")
+                    {review?.learningModes?.length
+                      ? review.learningModes.map(formatEnumLabel).join(", ")
+                      : details.learningModes.length
+                      ? details.learningModes.map(formatEnumLabel).join(", ")
                       : "None"}
                   </p>
                   <p>
                     <span className="text-white">Ownership:</span>{" "}
-                    {details.ownership}
+                    {review?.ownership ?? details.ownership ?? "Not set"}
                   </p>
                   <p>
                     <span className="text-white">Level type:</span>{" "}
-                    {details.levelType}
+                    {review?.levelType ?? details.levelType ?? "Not set"}
                   </p>
                   <p>
                     <span className="text-white">Admissions policy:</span>{" "}
-                    {details.genderAdmissionPolicy
-                      ? formatLearningMode(details.genderAdmissionPolicy)
+                    {review?.genderAdmissionPolicy
+                      ? formatEnumLabel(review.genderAdmissionPolicy)
+                      : details.genderAdmissionPolicy
+                      ? formatEnumLabel(details.genderAdmissionPolicy)
                       : "Not set"}
                   </p>
                   <p>
                     <span className="text-white">Verification phone:</span>{" "}
-                    {addPhoneLater ? "Will add later" : normalizedPhone}
+                    {review?.phoneSetLater
+                      ? "Will add later"
+                      : review?.phone ?? (addPhoneLater ? "Will add later" : normalizedPhone)}
                   </p>
                 </div>
 

@@ -19,41 +19,34 @@ export type JoinRole =
   | "parent"
   | "staff";
 
-export type ExploreStart =
-  | "communities"
-  | "schools"
-  | "people"
-  | "marketplace";
-
 export type OnboardingState = {
-  route: OnboardingRoute | null;
+  route?: OnboardingRoute | null;
   buildInstitutionType?: BuildInstitutionType | null;
   joinRole?: JoinRole | null;
-  exploreStart?: ExploreStart | null;
 };
 
-export const ONBOARDING_STORAGE_KEY = "skuully_onboarding_state";
+const STORAGE_KEY = "skuully_onboarding_state";
 
 export function readOnboardingState(): OnboardingState {
-  if (typeof window === "undefined") {
-    return { route: null };
-  }
+  if (typeof window === "undefined") return {};
 
   try {
-    const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!raw) return { route: null };
-    return JSON.parse(raw) as OnboardingState;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as OnboardingState) : {};
   } catch {
-    return { route: null };
+    return {};
   }
 }
 
-export function writeOnboardingState(state: OnboardingState) {
+export function writeOnboardingState(input: Partial<OnboardingState>) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+
+  const current = readOnboardingState();
+  const next = { ...current, ...input };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
 export function clearOnboardingState() {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
 }
