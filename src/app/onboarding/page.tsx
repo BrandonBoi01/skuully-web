@@ -173,9 +173,12 @@ export default function OnboardingPage() {
 
   const canContinue = useMemo(() => {
     if (!selectedRoute) return false;
-    if (selectedRoute === "build_institution" && !selectedBuildType)
+    if (selectedRoute === "build_institution" && !selectedBuildType) {
       return false;
-    if (selectedRoute === "personal_account" && !selectedIntent) return false;
+    }
+    if (selectedRoute === "personal_account" && !selectedIntent) {
+      return false;
+    }
     return true;
   }, [selectedRoute, selectedBuildType, selectedIntent]);
 
@@ -248,7 +251,7 @@ export default function OnboardingPage() {
                 className={[
                   "spotlight-card skuully-glass-card hover-lift relative rounded-[24px] p-5 text-left transition",
                   selected
-                    ? "border border-[rgba(165,94,149,0.40)] bg-[rgba(165,94,149,0.11)] shadow-[0_0_0_1px_rgba(165,94,149,0.14),0_20px_48px_rgba(165,94,149,0.16)]"
+                    ? "border border-[rgba(54,97,225,0.42)] bg-[rgba(54,97,225,0.10)] shadow-[0_0_0_1px_rgba(54,97,225,0.14),0_20px_48px_rgba(54,97,225,0.16)]"
                     : "border border-[var(--border)]",
                 ].join(" ")}
               >
@@ -300,7 +303,7 @@ export default function OnboardingPage() {
                     className={[
                       "rounded-[20px] border px-4 py-4 text-left transition",
                       selected
-                        ? "border-[rgba(198,38,74,0.34)] bg-[rgba(198,38,74,0.10)] shadow-[0_0_0_1px_rgba(198,38,74,0.10)]"
+                        ? "border-[rgba(54,97,225,0.34)] bg-[rgba(54,97,225,0.10)] shadow-[0_0_0_1px_rgba(54,97,225,0.10)]"
                         : "border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]",
                     ].join(" ")}
                   >
@@ -346,7 +349,7 @@ export default function OnboardingPage() {
                     className={[
                       "rounded-[20px] border px-4 py-4 text-left transition",
                       selected
-                        ? "border-[rgba(165,94,149,0.34)] bg-[rgba(165,94,149,0.10)] shadow-[0_0_0_1px_rgba(165,94,149,0.10)]"
+                        ? "border-[rgba(54,97,225,0.34)] bg-[rgba(54,97,225,0.10)] shadow-[0_0_0_1px_rgba(54,97,225,0.10)]"
                         : "border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]",
                     ].join(" ")}
                   >
