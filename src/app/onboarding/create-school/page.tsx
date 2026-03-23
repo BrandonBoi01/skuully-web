@@ -389,9 +389,9 @@ export default function CreateSchoolPage() {
 
         setInstitutionType(buildType);
         setMe(meResponse);
-        setCountries(countriesResponse.items);
+        setCountries(countriesResponse.items ?? []);
 
-        const mappedPhoneCountries = phoneCountriesResponse.items.map((item) => ({
+        const mappedPhoneCountries = (phoneCountriesResponse.items ?? []).map((item) => ({
           code: item.code,
           name: item.name,
           flagEmoji: item.flagEmoji,
@@ -403,8 +403,8 @@ export default function CreateSchoolPage() {
         setPhoneCountries(mappedPhoneCountries);
 
         const defaultCountry =
-          countriesResponse.items.find((item) => item.code === "KE") ??
-          countriesResponse.items[0] ??
+          countriesResponse.items?.find((item) => item.code === "KE") ??
+          countriesResponse.items?.[0] ??
           null;
 
         if (defaultCountry) {
@@ -1278,68 +1278,68 @@ export default function CreateSchoolPage() {
                 description="Confirm your setup before Skuully creates your workspace."
               >
                 <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-1)] p-4">
-                    <SummaryRow
-                      label="Type"
-                      value={prettyInstitutionLabel(institutionType)}
-                    />
-                    <SummaryRow
-                      label="Name"
-                      value={(review?.institutionName ?? schoolName.trim()) || "—"}
-                    />
-                    <SummaryRow
-                      label="Country"
-                      value={(review?.country ?? selectedCountry?.name) || "—"}
-                    />
-                    <SummaryRow
-                      label={academicLabel}
-                      value={
-                        review?.academicSetLater
-                          ? "Will set later"
-                          : review?.academicItems?.length
-                          ? review.academicItems.join(", ")
-                          : selectedAcademicItems.length
-                          ? selectedAcademicItems.map((item) => item.label).join(", ")
-                          : "None selected"
-                      }
-                    />
-                    <SummaryRow
-                      label="Learning modes"
-                      value={
-                        review?.learningModes?.length
-                          ? review.learningModes.map(formatEnumLabel).join(", ")
-                          : details.learningModes.length
-                          ? details.learningModes.map(formatEnumLabel).join(", ")
-                          : "None"
-                      }
-                    />
-                    <SummaryRow
-                      label="Ownership"
-                      value={(review?.ownership ?? details.ownership) || "Not set"}
-                    />
-                    <SummaryRow
-                      label="Level type"
-                      value={(review?.levelType ?? details.levelType) || "Not set"}
-                    />
-                    <SummaryRow
-                      label="Admissions policy"
-                      value={
-                        review?.genderAdmissionPolicy
-                          ? formatEnumLabel(review.genderAdmissionPolicy)
-                          : details.genderAdmissionPolicy
-                          ? formatEnumLabel(details.genderAdmissionPolicy)
-                          : "Not set"
-                      }
-                    />
-                    <SummaryRow
-                      label="Verification phone"
-                      value={
-                        review?.phoneSetLater
-                          ? "Will add later"
-                          : review?.phone ??
-                            (addPhoneLater ? "Will add later" : normalizedPhone || "—")
-                      }
-                    />
-                  </div>
+                  <SummaryRow
+                    label="Type"
+                    value={prettyInstitutionLabel(institutionType)}
+                  />
+                  <SummaryRow
+                    label="Name"
+                    value={(review?.institutionName ?? schoolName.trim()) || "—"}
+                  />
+                  <SummaryRow
+                    label="Country"
+                    value={(review?.country ?? selectedCountry?.name) || "—"}
+                  />
+                  <SummaryRow
+                    label={academicLabel}
+                    value={
+                      review?.academicSetLater
+                        ? "Will set later"
+                        : review?.academicItems?.length
+                        ? review.academicItems.join(", ")
+                        : selectedAcademicItems.length
+                        ? selectedAcademicItems.map((item) => item.label).join(", ")
+                        : "None selected"
+                    }
+                  />
+                  <SummaryRow
+                    label="Learning modes"
+                    value={
+                      review?.learningModes?.length
+                        ? review.learningModes.map(formatEnumLabel).join(", ")
+                        : details.learningModes.length
+                        ? details.learningModes.map(formatEnumLabel).join(", ")
+                        : "None"
+                    }
+                  />
+                  <SummaryRow
+                    label="Ownership"
+                    value={(review?.ownership ?? details.ownership) || "Not set"}
+                  />
+                  <SummaryRow
+                    label="Level type"
+                    value={(review?.levelType ?? details.levelType) || "Not set"}
+                  />
+                  <SummaryRow
+                    label="Admissions policy"
+                    value={
+                      review?.genderAdmissionPolicy
+                        ? formatEnumLabel(review.genderAdmissionPolicy)
+                        : details.genderAdmissionPolicy
+                        ? formatEnumLabel(details.genderAdmissionPolicy)
+                        : "Not set"
+                    }
+                  />
+                  <SummaryRow
+                    label="Verification phone"
+                    value={
+                      review?.phoneSetLater
+                        ? "Will add later"
+                        : review?.phone ??
+                          (addPhoneLater ? "Will add later" : normalizedPhone || "—")
+                    }
+                  />
+                </div>
 
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm leading-7 text-[var(--text-soft)]">
                   Skuully will prepare your main workspace and its initial academic structure from this setup.

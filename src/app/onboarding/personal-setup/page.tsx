@@ -1,15 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  Briefcase,
   Check,
-  Compass,
-  LockKeyhole,
   ShieldCheck,
-  Sparkles,
   UserCircle2,
 } from "lucide-react";
 
@@ -175,30 +171,6 @@ function StepCard({
   );
 }
 
-function SummaryCard({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="glass rounded-[24px] border border-[var(--border)] p-5">
-      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] text-[rgb(var(--skuully-cyan))] shadow-[var(--elev-shadow-xs)]">
-        {icon}
-      </div>
-
-      <h3 className="mt-4 text-base font-semibold text-[var(--text-strong)]">
-        {title}
-      </h3>
-
-      <div className="mt-4">{children}</div>
-    </div>
-  );
-}
-
 function SummaryRow({
   label,
   value,
@@ -305,11 +277,6 @@ export default function PersonalSetupPage() {
           return;
         }
 
-        if (meResponse.context?.schoolId && meResponse.context?.programId) {
-          router.replace("/dashboard/control-center");
-          return;
-        }
-
         const saved = readOnboardingState();
         const intent = saved.accountIntent ?? null;
 
@@ -318,7 +285,7 @@ export default function PersonalSetupPage() {
           return;
         }
 
-        const mappedPhoneCountries = phoneCountriesResponse.items.map((item) => ({
+        const mappedPhoneCountries = (phoneCountriesResponse.items ?? []).map((item) => ({
           code: item.code,
           name: item.name,
           flagEmoji: item.flagEmoji,
@@ -584,295 +551,248 @@ export default function PersonalSetupPage() {
         className="space-y-6"
         onSubmit={handleCreate}
       >
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-6">
-            {step === "identity" ? (
-              <StepCard
-                icon={<UserCircle2 className="h-5 w-5" />}
-                title="Create your personal identity"
-                description="Start with your name, your Skuully ID, and a few details that help shape your experience."
-              >
-                <div className="grid gap-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
-                      Full name
-                    </label>
-                    <input
-                      className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
-                      value={fullName}
-                      onChange={(event) => setFullName(event.target.value)}
-                      placeholder="Your full name"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
-                      Skuully ID
-                    </label>
-                    <input
-                      className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
-                      value={skuullyId}
-                      onChange={(event) =>
-                        setSkuullyId(event.target.value.toLowerCase())
-                      }
-                      placeholder="brandonboi"
-                      required
-                    />
-                    <p className="mt-2 text-xs text-[var(--text-soft)]">
-                      Use 3–24 lowercase letters, numbers, dots, underscores, or hyphens.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
-                      Headline
-                    </label>
-                    <input
-                      className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
-                      value={headline}
-                      onChange={(event) => setHeadline(event.target.value)}
-                      placeholder="Tell people a little about your journey"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
-                      Date of birth
-                    </label>
-                    <input
-                      className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
-                      type="date"
-                      value={dateOfBirth}
-                      onChange={(event) => setDateOfBirth(event.target.value)}
-                    />
-                  </div>
+        <div className="mx-auto max-w-3xl space-y-6">
+          {step === "identity" ? (
+            <StepCard
+              icon={<UserCircle2 className="h-5 w-5" />}
+              title="Create your personal identity"
+              description="Start with your name, your Skuully ID, and a few details that help shape your experience."
+            >
+              <div className="grid gap-5">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                    Full name
+                  </label>
+                  <input
+                    className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    placeholder="Your full name"
+                    required
+                  />
                 </div>
-              </StepCard>
-            ) : null}
 
-            {step === "security" ? (
-              <StepCard
-                icon={<ShieldCheck className="h-5 w-5" />}
-                title="Add a verification number"
-                description="Protect your account with a phone number for future verification and stronger account security."
-              >
-                <div className="space-y-4">
-                  <SelectableCard
-                    title="Add later"
-                    description="Skip phone verification for now and continue setup."
-                    selected={addPhoneLater}
-                    onClick={() => {
-                      setAddPhoneLater(true);
-                      setPhoneError(null);
-                    }}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                    Skuully ID
+                  </label>
+                  <input
+                    className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                    value={skuullyId}
+                    onChange={(event) =>
+                      setSkuullyId(event.target.value.toLowerCase())
+                    }
+                    placeholder="brandonboi"
+                    required
                   />
+                  <p className="mt-2 text-xs text-[var(--text-soft)]">
+                    Use 3–24 lowercase letters, numbers, dots, underscores, or hyphens.
+                  </p>
+                </div>
 
-                  <SelectableCard
-                    title="Add phone now"
-                    description="Verify your phone number before continuing."
-                    selected={!addPhoneLater}
-                    onClick={() => setAddPhoneLater(false)}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                    Headline
+                  </label>
+                  <input
+                    className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                    value={headline}
+                    onChange={(event) => setHeadline(event.target.value)}
+                    placeholder="Tell people a little about your journey"
                   />
+                </div>
 
-                  {!addPhoneLater ? (
-                    <div className="space-y-4 rounded-[22px] border border-[var(--border)] bg-[var(--surface-1)] p-4">
-                      <div className="grid gap-4 sm:grid-cols-[190px_1fr]">
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
-                            Country
-                          </label>
-                          <select
-                            value={phoneCountryCode}
-                            onChange={(event) => {
-                              setPhoneCountryCode(event.target.value);
-                              setPhoneError(null);
-                              setPhoneNumber("");
-                              setPhoneCode("");
-                              setPhoneCodeSent(false);
-                              setPhoneVerified(false);
-                            }}
-                            className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:ring-4 focus:ring-[var(--ring)]"
-                          >
-                            {phoneCountries.map((item) => (
-                              <option key={item.code} value={item.code}>
-                                {item.flagEmoji ?? "🌍"} {item.name} ({item.phoneCode})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                    Date of birth
+                  </label>
+                  <input
+                    className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(event) => setDateOfBirth(event.target.value)}
+                  />
+                </div>
+              </div>
+            </StepCard>
+          ) : null}
 
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
-                            Phone number
-                          </label>
-                          <div className="flex overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
-                            <div className="flex items-center gap-2 border-r border-[var(--border)] px-4 text-sm text-[var(--text-soft)]">
-                              <span>{currentPhoneCountry?.flagEmoji ?? "🌍"}</span>
-                              <span>{currentPhoneCountry?.phoneCode ?? ""}</span>
-                            </div>
+          {step === "security" ? (
+            <StepCard
+              icon={<ShieldCheck className="h-5 w-5" />}
+              title="Add a verification number"
+              description="Protect your account with a phone number for future verification and stronger account security."
+            >
+              <div className="space-y-4">
+                <SelectableCard
+                  title="Add later"
+                  description="Skip phone verification for now and continue setup."
+                  selected={addPhoneLater}
+                  onClick={() => {
+                    setAddPhoneLater(true);
+                    setPhoneError(null);
+                  }}
+                />
 
-                            <input
-                              className="h-12 w-full bg-transparent px-4 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--text-faint)]"
-                              value={phoneNumber}
-                              onChange={(event) =>
-                                handlePhoneChange(event.target.value)
-                              }
-                              placeholder="Enter phone number"
-                              inputMode="numeric"
-                              type="tel"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                <SelectableCard
+                  title="Add phone now"
+                  description="Verify your phone number before continuing."
+                  selected={!addPhoneLater}
+                  onClick={() => setAddPhoneLater(false)}
+                />
 
-                      {phoneError ? (
-                        <div className="rounded-2xl border border-[rgba(198,38,74,0.24)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)] dark:text-rose-100">
-                          {phoneError}
-                        </div>
-                      ) : (
-                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-soft)]">
-                          Final number: {normalizedPhone || "—"}
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={handleSendPhoneCode}
-                          disabled={phoneBusy}
-                          className="rounded-2xl border border-[rgba(var(--skuully-cyan),0.28)] bg-[rgba(var(--skuully-cyan),0.10)] px-4 py-2.5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[rgba(var(--skuully-cyan),0.14)] disabled:opacity-50"
+                {!addPhoneLater ? (
+                  <div className="space-y-4 rounded-[22px] border border-[var(--border)] bg-[var(--surface-1)] p-4">
+                    <div className="grid gap-4 sm:grid-cols-[190px_1fr]">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                          Country
+                        </label>
+                        <select
+                          value={phoneCountryCode}
+                          onChange={(event) => {
+                            setPhoneCountryCode(event.target.value);
+                            setPhoneError(null);
+                            setPhoneNumber("");
+                            setPhoneCode("");
+                            setPhoneCodeSent(false);
+                            setPhoneVerified(false);
+                          }}
+                          className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:ring-4 focus:ring-[var(--ring)]"
                         >
-                          {phoneBusy ? "Sending..." : "Send code"}
-                        </button>
-
-                        {phoneVerified ? (
-                          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-100">
-                            Phone verified
-                          </div>
-                        ) : null}
+                          {phoneCountries.map((item) => (
+                            <option key={item.code} value={item.code}>
+                              {item.flagEmoji ?? "🌍"} {item.name} ({item.phoneCode})
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      {phoneCodeSent ? (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
-                              Verification code
-                            </label>
-                            <input
-                              className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:ring-4 focus:ring-[var(--ring)]"
-                              value={phoneCode}
-                              onChange={(event) => setPhoneCode(event.target.value)}
-                              placeholder="Enter SMS code"
-                              inputMode="numeric"
-                            />
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                          Phone number
+                        </label>
+                        <div className="flex overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
+                          <div className="flex items-center gap-2 border-r border-[var(--border)] px-4 text-sm text-[var(--text-soft)]">
+                            <span>{currentPhoneCountry?.flagEmoji ?? "🌍"}</span>
+                            <span>{currentPhoneCountry?.phoneCode ?? ""}</span>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={handleVerifyPhoneCode}
-                            disabled={phoneBusy}
-                            className="rounded-2xl border border-[rgba(var(--skuully-cyan),0.28)] bg-[rgba(var(--skuully-cyan),0.10)] px-4 py-2.5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[rgba(var(--skuully-cyan),0.14)] disabled:opacity-50"
-                          >
-                            {phoneBusy ? "Verifying..." : "Verify code"}
-                          </button>
+                          <input
+                            className="h-12 w-full bg-transparent px-4 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--text-faint)]"
+                            value={phoneNumber}
+                            onChange={(event) =>
+                              handlePhoneChange(event.target.value)
+                            }
+                            placeholder="Enter phone number"
+                            inputMode="numeric"
+                            type="tel"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {phoneError ? (
+                      <div className="rounded-2xl border border-[rgba(198,38,74,0.24)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)] dark:text-rose-100">
+                        {phoneError}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-soft)]">
+                        Final number: {normalizedPhone || "—"}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={handleSendPhoneCode}
+                        disabled={phoneBusy}
+                        className="rounded-2xl border border-[rgba(var(--skuully-cyan),0.28)] bg-[rgba(var(--skuully-cyan),0.10)] px-4 py-2.5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[rgba(var(--skuully-cyan),0.14)] disabled:opacity-50"
+                      >
+                        {phoneBusy ? "Sending..." : "Send code"}
+                      </button>
+
+                      {phoneVerified ? (
+                        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-100">
+                          Phone verified
                         </div>
                       ) : null}
                     </div>
-                  ) : null}
-                </div>
-              </StepCard>
-            ) : null}
 
-            {step === "review" ? (
-              <StepCard
-                icon={<Check className="h-5 w-5" />}
-                title="Review your profile"
-                description="Confirm your setup before Skuully completes your personal account."
-              >
-                <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-1)] p-4">
-                  <SummaryRow label="Full name" value={fullName.trim() || "—"} />
-                  <SummaryRow
-                    label="Skuully ID"
-                    value={skuullyId.trim().toLowerCase() || "—"}
-                  />
-                  <SummaryRow
-                    label="Intent"
-                    value={formatIntentLabel(accountIntent)}
-                  />
-                  <SummaryRow
-                    label="Headline"
-                    value={headline.trim() || "Not set"}
-                  />
-                  <SummaryRow
-                    label="Date of birth"
-                    value={dateOfBirth || "Not set"}
-                  />
-                  <SummaryRow
-                    label="Verification phone"
-                    value={
-                      addPhoneLater ? "Will add later" : normalizedPhone || "—"
-                    }
-                  />
-                </div>
+                    {phoneCodeSent ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                            Verification code
+                          </label>
+                          <input
+                            className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:ring-4 focus:ring-[var(--ring)]"
+                            value={phoneCode}
+                            onChange={(event) => setPhoneCode(event.target.value)}
+                            placeholder="Enter SMS code"
+                            inputMode="numeric"
+                          />
+                        </div>
 
-                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm leading-7 text-[var(--text-soft)]">
-                  Skuully will create your personal identity and prepare a starting experience around your role and goals.
-                </div>
-              </StepCard>
-            ) : null}
-
-            {error ? (
-              <div className="rounded-2xl border border-[rgba(198,38,74,0.24)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)] dark:text-rose-100">
-                {error}
+                        <button
+                          type="button"
+                          onClick={handleVerifyPhoneCode}
+                          disabled={phoneBusy}
+                          className="rounded-2xl border border-[rgba(var(--skuully-cyan),0.28)] bg-[rgba(var(--skuully-cyan),0.10)] px-4 py-2.5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[rgba(var(--skuully-cyan),0.14)] disabled:opacity-50"
+                        >
+                          {phoneBusy ? "Verifying..." : "Verify code"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
+            </StepCard>
+          ) : null}
 
-          <div className="space-y-5">
-            <SummaryCard
-              icon={<Briefcase className="h-4 w-4" />}
-              title="Profile snapshot"
+          {step === "review" ? (
+            <StepCard
+              icon={<Check className="h-5 w-5" />}
+              title="Review your profile"
+              description="Confirm your setup before Skuully completes your personal account."
             >
-              <div className="divide-y divide-[var(--border)]">
-                <SummaryRow label="Name" value={me?.fullName ?? "Ready"} />
+              <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-1)] p-4">
+                <SummaryRow label="Full name" value={fullName.trim() || "—"} />
+                <SummaryRow
+                  label="Skuully ID"
+                  value={skuullyId.trim().toLowerCase() || "—"}
+                />
                 <SummaryRow
                   label="Intent"
                   value={formatIntentLabel(accountIntent)}
                 />
-                <SummaryRow label="Email" value={me?.email ?? "—"} />
                 <SummaryRow
-                  label="Step"
-                  value={`${currentStep} of ${totalSteps}`}
+                  label="Headline"
+                  value={headline.trim() || "Not set"}
+                />
+                <SummaryRow
+                  label="Date of birth"
+                  value={dateOfBirth || "Not set"}
+                />
+                <SummaryRow
+                  label="Verification phone"
+                  value={
+                    addPhoneLater ? "Will add later" : normalizedPhone || "—"
+                  }
                 />
               </div>
-            </SummaryCard>
 
-            <SummaryCard
-              icon={<Compass className="h-4 w-4" />}
-              title="Personal path"
-            >
-              <p className="text-sm leading-7 text-[var(--text-soft)]">
-                Your selected path helps Skuully shape a more relevant starting point for learning, work, identity, and growth.
-              </p>
-
-              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-soft)]">
-                Starting as:{" "}
-                <span className="font-medium text-[var(--text-strong)]">
-                  {formatIntentLabel(accountIntent)}
-                </span>
+              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm leading-7 text-[var(--text-soft)]">
+                Skuully will create your personal identity and prepare a starting experience around your role and goals.
               </div>
-            </SummaryCard>
+            </StepCard>
+          ) : null}
 
-            <SummaryCard
-              icon={<LockKeyhole className="h-4 w-4" />}
-              title="Security"
-            >
-              <p className="text-sm leading-7 text-[var(--text-soft)]">
-                Email verification is already active. You can also add a phone number now or later for stronger account protection.
-              </p>
-            </SummaryCard>
-          </div>
+          {error ? (
+            <div className="rounded-2xl border border-[rgba(198,38,74,0.24)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)] dark:text-rose-100">
+              {error}
+            </div>
+          ) : null}
         </div>
       </form>
     </OnboardingShell>
