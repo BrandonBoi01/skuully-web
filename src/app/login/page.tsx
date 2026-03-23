@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Apple } from "lucide-react";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasswordField } from "@/components/auth/password-field";
 import { FloatingNotice } from "@/components/ui/floating-notice";
+import { GoogleIcon, AppleIcon } from "@/components/auth/social-icons";
 
 import {
   continueWithApple,
@@ -20,17 +20,6 @@ import {
   setPendingResetEmail,
   setPendingVerificationEmail,
 } from "@/lib/auth";
-
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden="true">
-      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3 14.6 2 12 2 6.9 2 2.8 6.4 2.8 11.8S6.9 21.5 12 21.5c6.9 0 9.2-7.5 9.2-7.5 0-.5 0-.9-.1-1.3H12Z" />
-      <path fill="#34A853" d="M3.8 7.1l3.2 2.4C7.8 7.7 9.7 6.3 12 6.3c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3 14.6 2 12 2 8 2 4.6 4.2 3 7.4l.8-.3Z" />
-      <path fill="#FBBC05" d="M12 21.5c2.5 0 4.7-.9 6.2-2.4l-3-2.4c-.8.6-1.9 1.1-3.3 1.1-3.9 0-5.2-2.6-5.5-3.8l-3.1 2.4C4.5 19.4 8 21.5 12 21.5Z" />
-      <path fill="#4285F4" d="M21.2 12.7H12v3.9h5.5c-.3 1.1-1.1 2-2.2 2.7l3 2.4c1.8-1.7 2.9-4.2 2.9-7.4 0-.5 0-1-.1-1.6Z" />
-    </svg>
-  );
-}
 
 function mapLoginError(message: string) {
   const text = message.toLowerCase();
@@ -207,10 +196,15 @@ export default function LoginPage() {
           ) : null}
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <SocialButton onClick={continueWithGoogle} icon={<GoogleIcon />} label="Google" />
+            <SocialButton
+              onClick={continueWithGoogle}
+              icon={<GoogleIcon className="h-5 w-5" />}
+              label="Google"
+            />
+
             <SocialButton
               onClick={continueWithApple}
-              icon={<Apple className="h-4 w-4 shrink-0" />}
+              icon={<AppleIcon className="h-5 w-5" />}
               label="Apple"
             />
           </div>

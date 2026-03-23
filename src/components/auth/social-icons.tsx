@@ -1,32 +1,35 @@
 import * as React from "react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
-export function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
+type SocialIconProps = {
+  className?: string;
+};
+
+export function GoogleIcon({ className }: SocialIconProps) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
-      <path
-        fill="#EA4335"
-        d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.8-2.7-5.8-6s2.6-6 5.8-6c1.8 0 3 .8 3.7 1.4l2.5-2.4C16.6 3.4 14.5 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12s4.3 9.5 9.5 9.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-1.5H12Z"
+    <span className={cn("relative inline-flex shrink-0", className)} aria-hidden="true">
+      <Image
+        src="/Assets/google-icon-logo-svgrepo-com.svg"
+        alt=""
+        fill
+        className="object-contain"
+        sizes="20px"
       />
-      <path
-        fill="#34A853"
-        d="M3.6 7.4 6.8 9.7C7.6 7.6 9.6 6 12 6c1.8 0 3 .8 3.7 1.4l2.5-2.4C16.6 3.4 14.5 2.5 12 2.5c-3.6 0-6.8 2-8.4 4.9Z"
-      />
-      <path
-        fill="#4A90E2"
-        d="M12 21.5c2.4 0 4.4-.8 5.9-2.3l-2.7-2.2c-.8.6-1.8 1-3.2 1-3.9 0-5.2-2.6-5.4-3.8l-3.1 2.4c1.6 3 4.7 4.9 8.5 4.9Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.5 16.5 6.7 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2L3.6 7.4A9.4 9.4 0 0 0 2.5 12c0 1.7.4 3.2 1 4.5Z"
-      />
-    </svg>
+    </span>
   );
 }
 
-export function AppleIcon(props: React.SVGProps<SVGSVGElement>) {
+export function AppleIcon({ className }: SocialIconProps) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" {...props}>
-      <path d="M16.7 12.7c0-2 1.7-3 1.8-3.1-1-1.5-2.7-1.7-3.2-1.7-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-3-.8-1.6 0-3 .9-3.8 2.2-1.6 2.7-.4 6.7 1.2 9 .8 1.1 1.7 2.3 2.9 2.3 1.1 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2-.9 2.8-2 .9-1.3 1.3-2.5 1.3-2.6 0 0-2.6-1-2.6-4.1ZM14.4 6.4c.7-.8 1.2-1.9 1-3-.9 0-2 .6-2.7 1.4-.6.7-1.2 1.8-1 2.9 1 .1 2-.5 2.7-1.3Z" />
-    </svg>
+    <span className={cn("relative inline-flex shrink-0", className)} aria-hidden="true">
+      <Image
+        src="/Assets/apple-black-logo-svgrepo-com.svg"
+        alt=""
+        fill
+        className="object-contain dark:invert"
+        sizes="20px"
+      />
+    </span>
   );
 }
