@@ -202,9 +202,7 @@ export default function OnboardingPage() {
     ? `${firstName}, choose how you want to begin`
     : "Choose how you want to begin";
 
-  const subtitle = firstName
-    ? `${firstName}, start with the path that fits your role today.`
-    : "Start with the path that fits your role today.";
+  const subtitle = "Start with the path that fits your role today.";
 
   return (
     <OnboardingShell
