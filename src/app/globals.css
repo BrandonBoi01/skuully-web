@@ -543,9 +543,9 @@ summary:focus-visible {
   background:
     radial-gradient(
       circle,
-      rgba(88, 66, 171, 0.28) 0%,
-      rgba(165, 94, 149, 0.16) 40%,
-      transparent 75%
+      rgba(126, 87, 255, 0.28) 0%,
+      rgba(58, 109, 255, 0.16) 38%,
+      transparent 74%
     );
   filter: blur(26px);
   opacity: 0.95;
