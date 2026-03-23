@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -18,6 +18,7 @@ import {
   type OnboardingRoute,
 } from "@/lib/onboarding-flow";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { getMe } from "@/lib/auth";
 
 type RouteCard = {
   route: OnboardingRoute;
@@ -48,7 +49,8 @@ const ROUTES: RouteCard[] = [
   {
     route: "personal_account",
     title: "Start as yourself",
-    description: "Begin with your identity and grow into learning, work, or community.",
+    description:
+      "Begin with your identity and grow into learning, work, or community.",
     icon: <Sparkles className="h-5 w-5" />,
   },
 ];
@@ -95,12 +97,14 @@ const PERSONAL_INTENTS: IntentCard[] = [
   {
     intent: "founder",
     title: "Founder / Builder",
-    description: "You are shaping a school, institution, or education initiative.",
+    description:
+      "You are shaping a school, institution, or education initiative.",
   },
   {
     intent: "staff",
     title: "Staff / Educator",
-    description: "You work in teaching, administration, operations, or support.",
+    description:
+      "You work in teaching, administration, operations, or support.",
   },
   {
     intent: "student",
@@ -110,7 +114,8 @@ const PERSONAL_INTENTS: IntentCard[] = [
   {
     intent: "parent",
     title: "Parent / Guardian",
-    description: "You want visibility, communication, and progress tracking.",
+    description:
+      "You want visibility, communication, and progress tracking.",
   },
   {
     intent: "professional",
@@ -129,17 +134,47 @@ const PERSONAL_INTENTS: IntentCard[] = [
   },
 ];
 
+function firstNameFrom(value?: string | null) {
+  return value?.trim()?.split(/\s+/)?.[0] || "";
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
 
-  const [selectedRoute, setSelectedRoute] = useState<OnboardingRoute | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<OnboardingRoute | null>(
+    null
+  );
   const [selectedBuildType, setSelectedBuildType] =
     useState<BuildInstitutionType | null>(null);
-  const [selectedIntent, setSelectedIntent] = useState<AccountIntent | null>(null);
+  const [selectedIntent, setSelectedIntent] =
+    useState<AccountIntent | null>(null);
+  const [firstName, setFirstName] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMe() {
+      try {
+        const me = await getMe();
+        if (cancelled) return;
+        setFirstName(firstNameFrom(me?.fullName));
+      } catch {
+        if (cancelled) return;
+        setFirstName("");
+      }
+    }
+
+    void loadMe();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const canContinue = useMemo(() => {
     if (!selectedRoute) return false;
-    if (selectedRoute === "build_institution" && !selectedBuildType) return false;
+    if (selectedRoute === "build_institution" && !selectedBuildType)
+      return false;
     if (selectedRoute === "personal_account" && !selectedIntent) return false;
     return true;
   }, [selectedRoute, selectedBuildType, selectedIntent]);
@@ -151,7 +186,8 @@ export default function OnboardingPage() {
       route: selectedRoute,
       buildInstitutionType:
         selectedRoute === "build_institution" ? selectedBuildType : null,
-      accountIntent: selectedRoute === "personal_account" ? selectedIntent : null,
+      accountIntent:
+        selectedRoute === "personal_account" ? selectedIntent : null,
     });
 
     if (selectedRoute === "build_institution") {
@@ -162,12 +198,20 @@ export default function OnboardingPage() {
     router.push("/onboarding/personal-setup");
   }
 
+  const heading = firstName
+    ? `${firstName}, choose how you want to begin`
+    : "Choose how you want to begin";
+
+  const subtitle = firstName
+    ? `Let’s shape your ${firstName}'s Skuully journey with the path that fits your role today.`
+    : "Start with the path that fits your role today.";
+
   return (
     <OnboardingShell
       step={1}
       totalSteps={1}
-      title="Choose how you want to begin"
-      subtitle="Start with the path that fits your role today."
+      title={heading}
+      subtitle={subtitle}
       align="top"
       footer={
         <div className="flex justify-end">
@@ -206,13 +250,13 @@ export default function OnboardingPage() {
                 className={[
                   "spotlight-card skuully-glass-card hover-lift relative rounded-[24px] p-5 text-left transition",
                   selected
-                    ? "border border-[rgba(74,115,235,0.36)] bg-[rgba(74,115,235,0.10)] shadow-[0_0_0_1px_rgba(74,115,235,0.14),0_18px_42px_rgba(54,97,225,0.14)]"
+                    ? "border border-[rgba(165,94,149,0.40)] bg-[rgba(165,94,149,0.11)] shadow-[0_0_0_1px_rgba(165,94,149,0.14),0_20px_48px_rgba(165,94,149,0.16)]"
                     : "border border-[var(--border)]",
                 ].join(" ")}
               >
                 <div className="choice-card-glow" />
 
-                <div className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] text-[rgb(var(--skuully-cyan))] shadow-[var(--elev-shadow-xs)]">
+                <div className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] text-[rgb(var(--skuully-purple))] shadow-[var(--elev-shadow-xs)]">
                   {item.icon}
                 </div>
 
@@ -232,7 +276,7 @@ export default function OnboardingPage() {
           <div className="skuully-glass-card rounded-[24px] p-5">
             <div className="flex items-start gap-3">
               <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)]">
-                <GraduationCap className="h-5 w-5 text-[rgb(var(--skuully-cyan))]" />
+                <GraduationCap className="h-5 w-5 text-[rgb(var(--skuully-purple))]" />
               </div>
 
               <div>
@@ -240,7 +284,8 @@ export default function OnboardingPage() {
                   What are you building?
                 </h3>
                 <p className="mt-1 text-sm leading-7 text-[var(--text-soft)]">
-                  Choose the institution type so Skuully can shape the right setup flow.
+                  Choose the institution type so Skuully can shape the right
+                  setup flow.
                 </p>
               </div>
             </div>
@@ -257,7 +302,7 @@ export default function OnboardingPage() {
                     className={[
                       "rounded-[20px] border px-4 py-4 text-left transition",
                       selected
-                        ? "border-[rgba(74,115,235,0.34)] bg-[rgba(74,115,235,0.10)] shadow-[0_0_0_1px_rgba(74,115,235,0.12)]"
+                        ? "border-[rgba(198,38,74,0.34)] bg-[rgba(198,38,74,0.10)] shadow-[0_0_0_1px_rgba(198,38,74,0.10)]"
                         : "border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]",
                     ].join(" ")}
                   >
@@ -278,7 +323,7 @@ export default function OnboardingPage() {
           <div className="skuully-glass-card rounded-[24px] p-5">
             <div className="flex items-start gap-3">
               <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)]">
-                <Briefcase className="h-5 w-5 text-[rgb(var(--skuully-cyan))]" />
+                <Briefcase className="h-5 w-5 text-[rgb(var(--skuully-magenta))]" />
               </div>
 
               <div>
@@ -303,12 +348,12 @@ export default function OnboardingPage() {
                     className={[
                       "rounded-[20px] border px-4 py-4 text-left transition",
                       selected
-                        ? "border-[rgba(74,115,235,0.34)] bg-[rgba(74,115,235,0.10)] shadow-[0_0_0_1px_rgba(74,115,235,0.12)]"
+                        ? "border-[rgba(165,94,149,0.34)] bg-[rgba(165,94,149,0.10)] shadow-[0_0_0_1px_rgba(165,94,149,0.10)]"
                         : "border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]",
                     ].join(" ")}
                   >
                     <div className="flex items-center gap-2">
-                      <Compass className="h-4 w-4 text-[rgb(var(--skuully-cyan))]" />
+                      <Compass className="h-4 w-4 text-[rgb(var(--skuully-coral))]" />
                       <div className="text-sm font-semibold text-[var(--text-strong)]">
                         {item.title}
                       </div>
