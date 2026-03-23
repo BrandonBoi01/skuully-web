@@ -36,11 +36,11 @@ export function ChoiceCard({
         className={cn(
           "relative flex h-12 w-12 items-center justify-center rounded-2xl border transition-all duration-200",
           selected
-            ? "border-[rgba(var(--skuully-magenta),0.24)] bg-[rgba(var(--skuully-purple),0.12)] shadow-[var(--glow-purple)]"
-            : "border-[var(--border)] bg-[var(--surface-2)] group-hover:border-[rgba(var(--skuully-purple),0.22)]"
+            ? "border-[rgba(var(--skuully-blue),0.28)] bg-[rgba(var(--skuully-blue),0.10)] shadow-[var(--glow-blue)]"
+            : "border-[var(--border)] bg-[var(--surface-2)] group-hover:border-[rgba(var(--skuully-blue),0.18)]"
         )}
       >
-        <Icon className="h-5 w-5 text-[var(--text-strong)]" />
+        <Icon className="h-5 w-5 text-[rgb(var(--skuully-cyan))]" />
       </div>
 
       <div className="relative mt-5 flex min-h-0 flex-1 flex-col">

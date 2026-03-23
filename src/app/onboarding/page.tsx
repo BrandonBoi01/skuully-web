@@ -198,19 +198,19 @@ export default function OnboardingPage() {
     router.push("/onboarding/personal-setup");
   }
 
-  const heading = firstName
+  const title = firstName
     ? `${firstName}, choose how you want to begin`
     : "Choose how you want to begin";
 
   const subtitle = firstName
-    ? `Let’s shape your ${firstName}'s Skuully journey with the path that fits your role today.`
+    ? `${firstName}, start with the path that fits your role today.`
     : "Start with the path that fits your role today.";
 
   return (
     <OnboardingShell
       step={1}
       totalSteps={1}
-      title={heading}
+      title={title}
       subtitle={subtitle}
       align="top"
       footer={
@@ -256,7 +256,7 @@ export default function OnboardingPage() {
               >
                 <div className="choice-card-glow" />
 
-                <div className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] text-[rgb(var(--skuully-purple))] shadow-[var(--elev-shadow-xs)]">
+                <div className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] text-[rgb(var(--skuully-cyan))] shadow-[var(--elev-shadow-xs)]">
                   {item.icon}
                 </div>
 
@@ -276,7 +276,7 @@ export default function OnboardingPage() {
           <div className="skuully-glass-card rounded-[24px] p-5">
             <div className="flex items-start gap-3">
               <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)]">
-                <GraduationCap className="h-5 w-5 text-[rgb(var(--skuully-purple))]" />
+                <GraduationCap className="h-5 w-5 text-[rgb(var(--skuully-cyan))]" />
               </div>
 
               <div>
@@ -323,7 +323,7 @@ export default function OnboardingPage() {
           <div className="skuully-glass-card rounded-[24px] p-5">
             <div className="flex items-start gap-3">
               <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)]">
-                <Briefcase className="h-5 w-5 text-[rgb(var(--skuully-magenta))]" />
+                <Briefcase className="h-5 w-5 text-[rgb(var(--skuully-cyan))]" />
               </div>
 
               <div>
@@ -353,7 +353,7 @@ export default function OnboardingPage() {
                     ].join(" ")}
                   >
                     <div className="flex items-center gap-2">
-                      <Compass className="h-4 w-4 text-[rgb(var(--skuully-coral))]" />
+                      <Compass className="h-4 w-4 text-[rgb(var(--skuully-cyan))]" />
                       <div className="text-sm font-semibold text-[var(--text-strong)]">
                         {item.title}
                       </div>
