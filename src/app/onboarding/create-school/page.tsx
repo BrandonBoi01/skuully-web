@@ -8,8 +8,10 @@ import {
   Check,
   ChevronDown,
   Globe2,
+  GraduationCap,
   LockKeyhole,
   Search,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
@@ -108,17 +110,6 @@ function suggestedPlaceholder(type: BuildInstitutionType | null) {
   return `Greenfield ${label}`;
 }
 
-function MiniInfo({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="skuully-glass-card rounded-[24px] p-5">
-      <div className="text-xs uppercase tracking-[0.16em] text-white/35">
-        {label}
-      </div>
-      <div className="mt-2 text-base font-medium text-white">{value}</div>
-    </div>
-  );
-}
-
 function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
@@ -161,6 +152,151 @@ function formatEnumLabel(value: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function StepCard({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="glass-strong spotlight-card rounded-[28px] border border-[var(--border)] p-5 sm:p-6">
+      <div className="choice-card-glow" />
+
+      <div className="relative flex items-start gap-4">
+        <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] text-[rgb(var(--skuully-cyan))] shadow-[var(--elev-shadow-xs)]">
+          {icon}
+        </div>
+
+        <div className="min-w-0">
+          <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--text-strong)]">
+            {title}
+          </h2>
+          {description ? (
+            <p className="mt-1.5 text-sm leading-7 text-[var(--text-soft)]">
+              {description}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="relative mt-6">{children}</div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="glass rounded-[24px] border border-[var(--border)] p-5">
+      <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] text-[rgb(var(--skuully-cyan))] shadow-[var(--elev-shadow-xs)]">
+        {icon}
+      </div>
+
+      <h3 className="mt-4 text-base font-semibold text-[var(--text-strong)]">
+        {title}
+      </h3>
+
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2">
+      <span className="text-sm text-[var(--text-soft)]">{label}</span>
+      <span className="max-w-[65%] text-right text-sm font-medium text-[var(--text-strong)]">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function SelectableCard({
+  title,
+  description,
+  selected,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "w-full rounded-[22px] border p-4 text-left transition",
+        selected
+          ? "border-[rgba(var(--skuully-cyan),0.34)] bg-[rgba(var(--skuully-cyan),0.10)] shadow-[0_0_0_1px_rgba(59,180,229,0.10)]"
+          : "border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-[var(--text-strong)]">
+            {title}
+          </div>
+          <div className="mt-1 text-sm leading-6 text-[var(--text-soft)]">
+            {description}
+          </div>
+        </div>
+
+        {selected ? (
+          <div className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(var(--skuully-cyan),0.18)] text-[rgb(var(--skuully-cyan))]">
+            <Check className="h-3.5 w-3.5" />
+          </div>
+        ) : null}
+      </div>
+    </button>
+  );
+}
+
+function Chip({
+  selected,
+  children,
+  onClick,
+}: {
+  selected: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "rounded-full border px-3.5 py-2 text-sm transition",
+        selected
+          ? "border-[rgba(var(--skuully-cyan),0.30)] bg-[rgba(var(--skuully-cyan),0.12)] text-[var(--text-strong)]"
+          : "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--text-main)]",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function CreateSchoolPage() {
@@ -390,6 +526,7 @@ export default function CreateSchoolPage() {
     details.learningModes.length > 0 &&
     !!details.ownership &&
     !!details.levelType;
+
   const normalizedNationalPhone = normalizeNationalPhone(
     currentPhoneCountry,
     phoneNumber
@@ -649,8 +786,8 @@ export default function CreateSchoolPage() {
 
   if (isLoading) {
     return (
-      <div className="skuully-cinematic-bg flex min-h-screen items-center justify-center text-white">
-        <div className="skuully-glass-card rounded-[28px] px-6 py-5 text-sm text-white/65">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--surface-0)] px-4 text-[var(--text-main)]">
+        <div className="glass rounded-[28px] border border-[var(--border)] px-6 py-5 text-sm text-[var(--text-soft)]">
           Preparing your workspace setup...
         </div>
       </div>
@@ -672,7 +809,7 @@ export default function CreateSchoolPage() {
           <button
             type="button"
             onClick={goBack}
-            className="text-sm text-white/55 transition hover:text-white"
+            className="text-sm text-[var(--text-soft)] transition hover:text-[var(--text-main)]"
           >
             Back
           </button>
@@ -687,9 +824,9 @@ export default function CreateSchoolPage() {
                 (step === "details" && !detailsReady) ||
                 (step === "security" && !securityReady)
               }
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="skuully-cta inline-flex h-12 items-center gap-2 rounded-2xl px-5 text-sm font-semibold tracking-[-0.01em] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Continue
+              <span>Continue</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           ) : (
@@ -697,9 +834,9 @@ export default function CreateSchoolPage() {
               type="submit"
               form="create-school-form"
               disabled={isBusy}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="skuully-cta inline-flex h-12 items-center gap-2 rounded-2xl px-5 text-sm font-semibold tracking-[-0.01em] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isBusy ? "Creating workspace..." : "Create workspace"}
+              <span>{isBusy ? "Creating workspace..." : "Create workspace"}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           )}
@@ -711,226 +848,198 @@ export default function CreateSchoolPage() {
         className="space-y-6"
         onSubmit={handleCreate}
       >
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
             {step === "identity" ? (
-              <>
-                <div className="skuully-glass-card rounded-[24px] p-5">
-                  <label className="mb-3 block text-sm text-white/70">
-                    {prettyInstitutionLabel(institutionType)} name
-                  </label>
-
-                  <input
-                    className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
-                    value={schoolName}
-                    onChange={(event) => setSchoolName(event.target.value)}
-                    placeholder={suggestedPlaceholder(institutionType)}
-                    required
-                  />
-                </div>
-
-                <div
-                  ref={pickerRef}
-                  className="skuully-glass-card rounded-[24px] p-5"
-                >
-                  <label className="mb-3 block text-sm text-white/70">
-                    Country
-                  </label>
-
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-
+              <StepCard
+                icon={<Building2 className="h-5 w-5" />}
+                title={`Name your ${prettyInstitutionLabel(institutionType).toLowerCase()}`}
+                description="Start with the institution name and country so Skuully can tailor your setup."
+              >
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                      {prettyInstitutionLabel(institutionType)} name
+                    </label>
                     <input
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-12 text-white outline-none placeholder:text-white/25"
-                      value={countrySearch}
-                      onChange={(event) => {
-                        setCountrySearch(event.target.value);
-                        setPickerOpen(true);
-                      }}
-                      onFocus={() => setPickerOpen(true)}
-                      placeholder="Search any country"
+                      className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                      value={schoolName}
+                      onChange={(event) => setSchoolName(event.target.value)}
+                      placeholder={suggestedPlaceholder(institutionType)}
+                      required
                     />
+                  </div>
 
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                  <div ref={pickerRef}>
+                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                      Country
+                    </label>
 
-                    {pickerOpen ? (
-                      <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-[20px] border border-white/10 bg-[#0a1022] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-                        {filteredCountries.length > 0 ? (
-                          filteredCountries.map((country) => {
-                            const selected =
-                              selectedCountry?.code === country.code;
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-faint)]" />
 
-                            return (
-                              <button
-                                key={country.code}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedCountry(country);
-                                  setCountrySearch(country.name);
-                                  setPickerOpen(false);
+                      <input
+                        className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] py-3 pl-11 pr-12 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                        value={countrySearch}
+                        onChange={(event) => {
+                          setCountrySearch(event.target.value);
+                          setPickerOpen(true);
+                        }}
+                        onFocus={() => setPickerOpen(true)}
+                        placeholder="Search any country"
+                      />
 
-                                  const matchedPhoneCountry = phoneCountries.find(
-                                    (item) => item.code === country.code
-                                  );
+                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-faint)]" />
 
-                                  if (matchedPhoneCountry) {
-                                    setPhoneCountryCode(matchedPhoneCountry.code);
-                                    setPhoneNumber("");
-                                    setPhoneError(null);
-                                    setPhoneCode("");
-                                    setPhoneCodeSent(false);
-                                    setPhoneVerified(false);
-                                  }
-                                }}
-                                className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition ${
-                                  selected
-                                    ? "bg-[rgba(58,109,255,0.14)]"
-                                    : "hover:bg-white/[0.05]"
-                                }`}
-                              >
-                                <div>
-                                  <div className="text-sm font-medium text-white">
-                                    {country.name}
+                      {pickerOpen ? (
+                        <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-[20px] border border-[var(--border)] bg-[var(--surface-0)] p-2 shadow-[var(--elev-shadow-lg)]">
+                          {filteredCountries.length > 0 ? (
+                            filteredCountries.map((country) => {
+                              const selected =
+                                selectedCountry?.code === country.code;
+
+                              return (
+                                <button
+                                  key={country.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCountry(country);
+                                    setCountrySearch(country.name);
+                                    setPickerOpen(false);
+
+                                    const matchedPhoneCountry = phoneCountries.find(
+                                      (item) => item.code === country.code
+                                    );
+
+                                    if (matchedPhoneCountry) {
+                                      setPhoneCountryCode(matchedPhoneCountry.code);
+                                      setPhoneNumber("");
+                                      setPhoneError(null);
+                                      setPhoneCode("");
+                                      setPhoneCodeSent(false);
+                                      setPhoneVerified(false);
+                                    }
+                                  }}
+                                  className={[
+                                    "flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left transition",
+                                    selected
+                                      ? "bg-[rgba(var(--skuully-cyan),0.10)]"
+                                      : "hover:bg-[var(--surface-1)]",
+                                  ].join(" ")}
+                                >
+                                  <div>
+                                    <div className="text-sm font-medium text-[var(--text-strong)]">
+                                      {country.name}
+                                    </div>
+                                    <div className="mt-1 text-xs text-[var(--text-soft)]">
+                                      {country.nativeCurriculumName ??
+                                        "No default academic suggestion"}
+                                    </div>
                                   </div>
-                                  <div className="mt-1 text-xs text-white/45">
-                                    {country.nativeCurriculumName ??
-                                      "No default academic suggestion"}
-                                  </div>
-                                </div>
 
-                                {selected ? (
-                                  <Check className="mt-0.5 h-4 w-4 text-[#9bb4ff]" />
-                                ) : null}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="rounded-2xl px-4 py-4 text-sm text-white/50">
-                            No countries matched your search.
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
+                                  {selected ? (
+                                    <Check className="mt-0.5 h-4 w-4 text-[rgb(var(--skuully-cyan))]" />
+                                  ) : null}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="rounded-2xl px-4 py-4 text-sm text-[var(--text-soft)]">
+                              No countries matched your search.
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 py-3 text-sm text-[var(--text-soft)]">
+                    Skuully uses your country and institution type to suggest the most relevant academic structure.
                   </div>
                 </div>
-              </>
+              </StepCard>
             ) : null}
 
             {step === "academic" ? (
-              <div className="skuully-glass-card rounded-[24px] p-5">
-                <div className="flex items-start gap-3">
-                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                    <Sparkles className="h-4 w-4 text-[#b7c8ff]" />
+              <StepCard
+                icon={<Sparkles className="h-5 w-5" />}
+                title={academicLabel}
+                description={academicDescription}
+              >
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                      Search options
+                    </label>
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-faint)]" />
+                      <input
+                        className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] py-3 pl-11 pr-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                        value={academicSearch}
+                        onChange={(event) => setAcademicSearch(event.target.value)}
+                        placeholder={`Search ${academicLabel.toLowerCase()}`}
+                      />
+                    </div>
                   </div>
 
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-medium text-white">
-                      {academicLabel}
-                    </h3>
-                    <p className="mt-1 text-sm leading-7 text-white/55">
-                      {academicDescription}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="mb-3 block text-sm text-white/70">
-                    Search options
-                  </label>
-
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                    <input
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] py-4 pl-11 pr-4 text-white outline-none placeholder:text-white/25"
-                      value={academicSearch}
-                      onChange={(event) => setAcademicSearch(event.target.value)}
-                      placeholder={`Search ${academicLabel.toLowerCase()}`}
-                    />
-                  </div>
-
-                  <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
+                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                     {filteredAcademicOptions.map((item) => {
                       const selected = isSelectedAcademicOption(item);
 
                       return (
-                        <button
+                        <SelectableCard
                           key={`${item.label}-${item.code ?? "no-code"}`}
-                          type="button"
+                          title={item.label}
+                          description={
+                            item.category
+                              ? formatEnumLabel(item.category)
+                              : item.recommended
+                              ? "Recommended"
+                              : "Academic option"
+                          }
+                          selected={selected}
                           onClick={() => toggleAcademicItem(item)}
-                          className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
-                            selected
-                              ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                          }`}
-                        >
-                          <span className="text-sm text-white">{item.label}</span>
-                          {selected ? (
-                            <Check className="h-4 w-4 text-[#9bb4ff]" />
-                          ) : null}
-                        </button>
+                        />
                       );
                     })}
                   </div>
 
                   {selectedAcademicItems.length > 0 ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {selectedAcademicItems.map((item) => (
-                        <button
+                        <Chip
                           key={`${item.label}-${item.code ?? "no-code"}-chip`}
-                          type="button"
+                          selected
                           onClick={() => toggleAcademicItem(item)}
-                          className="rounded-full border border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)] px-3 py-1.5 text-xs text-white/85"
                         >
                           {item.label} ×
-                        </button>
+                        </Chip>
                       ))}
                     </div>
                   ) : null}
 
-                  <button
-                    type="button"
+                  <SelectableCard
+                    title="Set up later"
+                    description="Continue now and configure academic structure in more detail later."
+                    selected={setAcademicLater}
                     onClick={() => {
                       setSetAcademicLater(true);
                       setSelectedAcademicItems([]);
                     }}
-                    className={`mt-4 w-full rounded-[20px] border px-4 py-4 text-left transition ${
-                      setAcademicLater
-                        ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          Set up later
-                        </div>
-                        <div className="mt-1 text-sm text-white/52">
-                          Continue now and configure this in more detail later
-                        </div>
-                      </div>
-
-                      {setAcademicLater ? (
-                        <Check className="h-4 w-4 text-[#9bb4ff]" />
-                      ) : null}
-                    </div>
-                  </button>
+                  />
                 </div>
-              </div>
+              </StepCard>
             ) : null}
 
             {step === "details" ? (
-              <div className="skuully-glass-card rounded-[24px] p-5">
-                <h3 className="text-lg font-medium text-white">
-                  Relevant details for your{" "}
-                  {prettyInstitutionLabel(institutionType).toLowerCase()}
-                </h3>
-                <p className="mt-1 text-sm leading-7 text-white/55">
-                  Skuully adjusts these fields based on what you are building.
-                </p>
-
-                <div className="mt-5 grid gap-4">
+              <StepCard
+                icon={<GraduationCap className="h-5 w-5" />}
+                title="Add institution details"
+                description="These details help shape operations, learning structure, and admissions setup."
+              >
+                <div className="grid gap-5">
                   <div>
-                    <label className="mb-2 block text-sm text-white/70">
+                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
                       Learning modes
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -942,71 +1051,68 @@ export default function CreateSchoolPage() {
                         const selected = details.learningModes.includes(value);
 
                         return (
-                          <button
+                          <Chip
                             key={mode}
-                            type="button"
+                            selected={selected}
                             onClick={() => toggleLearningMode(mode)}
-                            className={`rounded-full border px-3 py-2 text-sm transition ${
-                              selected
-                                ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)] text-white"
-                                : "border-white/10 bg-white/[0.03] text-white/75 hover:bg-white/[0.05]"
-                            }`}
                           >
                             {formatEnumLabel(value)}
-                          </button>
+                          </Chip>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div>
-                    <label className="mb-2 block text-sm text-white/70">
-                      Ownership
-                    </label>
-                    <select
-                      value={details.ownership}
-                      onChange={(event) =>
-                        setDetails((prev) => ({
-                          ...prev,
-                          ownership: event.target.value,
-                        }))
-                      }
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
-                    >
-                      <option value="">Select ownership</option>
-                      {detailOptions.ownerships.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                        Ownership
+                      </label>
+                      <select
+                        value={details.ownership}
+                        onChange={(event) =>
+                          setDetails((prev) => ({
+                            ...prev,
+                            ownership: event.target.value,
+                          }))
+                        }
+                        className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                      >
+                        <option value="">Select ownership</option>
+                        {detailOptions.ownerships.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
+                        Level type
+                      </label>
+                      <select
+                        value={details.levelType}
+                        onChange={(event) =>
+                          setDetails((prev) => ({
+                            ...prev,
+                            levelType: event.target.value,
+                          }))
+                        }
+                        className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+                      >
+                        <option value="">Select level type</option>
+                        {detailOptions.levelTypes.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm text-white/70">
-                      Level type
-                    </label>
-                    <select
-                      value={details.levelType}
-                      onChange={(event) =>
-                        setDetails((prev) => ({
-                          ...prev,
-                          levelType: event.target.value,
-                        }))
-                      }
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
-                    >
-                      <option value="">Select level type</option>
-                      {detailOptions.levelTypes.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm text-white/70">
+                    <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
                       Admissions policy
                     </label>
                     <select
@@ -1018,7 +1124,7 @@ export default function CreateSchoolPage() {
                             event.target.value as GenderAdmissionPolicy | "",
                         }))
                       }
-                      className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                      className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
                     >
                       <option value="">Select admissions policy</option>
                       {detailOptions.genderAdmissionPolicies.map((option) => (
@@ -1029,85 +1135,38 @@ export default function CreateSchoolPage() {
                     </select>
                   </div>
                 </div>
-              </div>
+              </StepCard>
             ) : null}
 
             {step === "security" ? (
-              <div className="skuully-glass-card rounded-[24px] p-5">
-                <div className="flex items-start gap-3">
-                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                    <LockKeyhole className="h-4 w-4 text-[#b7c8ff]" />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-medium text-white">
-                      Add a verification number
-                    </h3>
-                    <p className="mt-1 text-sm leading-7 text-white/55">
-                      Protect your account with a phone number for future verification and 2FA.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-3">
-                  <button
-                    type="button"
+              <StepCard
+                icon={<ShieldCheck className="h-5 w-5" />}
+                title="Add a verification number"
+                description="Protect your account with a phone number for future verification and stronger account security."
+              >
+                <div className="space-y-4">
+                  <SelectableCard
+                    title="Add later"
+                    description="Skip phone verification for now and continue setup."
+                    selected={addPhoneLater}
                     onClick={() => {
                       setAddPhoneLater(true);
                       setPhoneError(null);
                     }}
-                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
-                      addPhoneLater
-                        ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          Add later
-                        </div>
-                        <div className="mt-1 text-sm text-white/52">
-                          Skip phone verification for now
-                        </div>
-                      </div>
+                  />
 
-                      {addPhoneLater ? (
-                        <Check className="h-4 w-4 text-[#9bb4ff]" />
-                      ) : null}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
+                  <SelectableCard
+                    title="Add phone now"
+                    description="Verify your phone number before continuing."
+                    selected={!addPhoneLater}
                     onClick={() => setAddPhoneLater(false)}
-                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
-                      !addPhoneLater
-                        ? "border-[rgba(58,109,255,0.28)] bg-[rgba(58,109,255,0.10)]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          Add phone now
-                        </div>
-                        <div className="mt-1 text-sm text-white/52">
-                          Verify before continuing
-                        </div>
-                      </div>
-
-                      {!addPhoneLater ? (
-                        <Check className="h-4 w-4 text-[#9bb4ff]" />
-                      ) : null}
-                    </div>
-                  </button>
+                  />
 
                   {!addPhoneLater ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-[190px_1fr]">
+                    <div className="space-y-4 rounded-[22px] border border-[var(--border)] bg-[var(--surface-1)] p-4">
+                      <div className="grid gap-4 sm:grid-cols-[190px_1fr]">
                         <div>
-                          <label className="mb-2 block text-sm text-white/70">
+                          <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
                             Country
                           </label>
                           <select
@@ -1120,7 +1179,7 @@ export default function CreateSchoolPage() {
                               setPhoneCodeSent(false);
                               setPhoneVerified(false);
                             }}
-                            className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-[#0b1022] px-4 py-4 text-white outline-none"
+                            className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[rgba(59,180,229,0.36)] focus:ring-4 focus:ring-[var(--ring)]"
                           >
                             {phoneCountries.map((item) => (
                               <option key={item.code} value={item.code}>
@@ -1131,17 +1190,17 @@ export default function CreateSchoolPage() {
                         </div>
 
                         <div>
-                          <label className="mb-2 block text-sm text-white/70">
+                          <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
                             Phone number
                           </label>
-                          <div className="flex overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
-                            <div className="flex items-center gap-2 border-r border-white/10 px-4 text-sm text-white/70">
+                          <div className="flex overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
+                            <div className="flex items-center gap-2 border-r border-[var(--border)] px-4 text-sm text-[var(--text-soft)]">
                               <span>{currentPhoneCountry?.flagEmoji ?? "🌍"}</span>
                               <span>{currentPhoneCountry?.phoneCode ?? ""}</span>
                             </div>
 
                             <input
-                              className="skuully-focus-ring w-full bg-transparent px-4 py-4 text-white outline-none placeholder:text-white/25"
+                              className="h-12 w-full bg-transparent px-4 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--text-faint)]"
                               value={phoneNumber}
                               onChange={(event) =>
                                 handlePhoneChange(event.target.value)
@@ -1155,11 +1214,11 @@ export default function CreateSchoolPage() {
                       </div>
 
                       {phoneError ? (
-                        <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                        <div className="rounded-2xl border border-[rgba(198,38,74,0.24)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)] dark:text-rose-100">
                           {phoneError}
                         </div>
                       ) : (
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-soft)]">
                           Final number: {normalizedPhone || "—"}
                         </div>
                       )}
@@ -1169,13 +1228,13 @@ export default function CreateSchoolPage() {
                           type="button"
                           onClick={handleSendPhoneCode}
                           disabled={phoneBusy}
-                          className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+                          className="rounded-2xl border border-[rgba(var(--skuully-cyan),0.28)] bg-[rgba(var(--skuully-cyan),0.10)] px-4 py-2.5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[rgba(var(--skuully-cyan),0.14)] disabled:opacity-50"
                         >
                           {phoneBusy ? "Sending..." : "Send code"}
                         </button>
 
                         {phoneVerified ? (
-                          <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">
+                          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-100">
                             Phone verified
                           </div>
                         ) : null}
@@ -1184,11 +1243,11 @@ export default function CreateSchoolPage() {
                       {phoneCodeSent ? (
                         <div className="space-y-3">
                           <div>
-                            <label className="mb-2 block text-sm text-white/70">
+                            <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
                               Verification code
                             </label>
                             <input
-                              className="skuully-focus-ring w-full rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-white outline-none placeholder:text-white/25"
+                              className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(59,180,229,0.36)] focus:ring-4 focus:ring-[var(--ring)]"
                               value={phoneCode}
                               onChange={(event) => setPhoneCode(event.target.value)}
                               placeholder="Enter SMS code"
@@ -1200,7 +1259,7 @@ export default function CreateSchoolPage() {
                             type="button"
                             onClick={handleVerifyPhoneCode}
                             disabled={phoneBusy}
-                            className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+                            className="rounded-2xl border border-[rgba(var(--skuully-cyan),0.28)] bg-[rgba(var(--skuully-cyan),0.10)] px-4 py-2.5 text-sm font-medium text-[var(--text-strong)] transition hover:bg-[rgba(var(--skuully-cyan),0.14)] disabled:opacity-50"
                           >
                             {phoneBusy ? "Verifying..." : "Verify code"}
                           </button>
@@ -1209,138 +1268,151 @@ export default function CreateSchoolPage() {
                     </div>
                   ) : null}
                 </div>
-              </div>
+              </StepCard>
             ) : null}
 
             {step === "review" ? (
-              <div className="skuully-glass-card rounded-[24px] p-5">
-                <h3 className="text-lg font-medium text-white">
-                  Review your workspace
-                </h3>
-
-                <div className="mt-5 space-y-3 text-sm text-white/55">
-                  <p>
-                    <span className="text-white">Type:</span>{" "}
-                    {prettyInstitutionLabel(institutionType)}
-                  </p>
-                  <p>
-                    <span className="text-white">Name:</span>{" "}
-                    {review?.institutionName ?? schoolName.trim()}
-                  </p>
-                  <p>
-                    <span className="text-white">Country:</span>{" "}
-                    {review?.country ?? selectedCountry?.name}
-                  </p>
-                  <p>
-                    <span className="text-white">{academicLabel}:</span>{" "}
-                    {review?.academicSetLater
-                      ? "Will set later"
-                      : review?.academicItems?.length
-                      ? review.academicItems.join(", ")
-                      : selectedAcademicItems.length
-                      ? selectedAcademicItems.map((item) => item.label).join(", ")
-                      : "None selected"}
-                  </p>
-                  <p>
-                    <span className="text-white">Learning modes:</span>{" "}
-                    {review?.learningModes?.length
-                      ? review.learningModes.map(formatEnumLabel).join(", ")
-                      : details.learningModes.length
-                      ? details.learningModes.map(formatEnumLabel).join(", ")
-                      : "None"}
-                  </p>
-                  <p>
-                    <span className="text-white">Ownership:</span>{" "}
-                    {review?.ownership ?? details.ownership ?? "Not set"}
-                  </p>
-                  <p>
-                    <span className="text-white">Level type:</span>{" "}
-                    {review?.levelType ?? details.levelType ?? "Not set"}
-                  </p>
-                  <p>
-                    <span className="text-white">Admissions policy:</span>{" "}
-                    {review?.genderAdmissionPolicy
-                      ? formatEnumLabel(review.genderAdmissionPolicy)
-                      : details.genderAdmissionPolicy
-                      ? formatEnumLabel(details.genderAdmissionPolicy)
-                      : "Not set"}
-                  </p>
-                  <p>
-                    <span className="text-white">Verification phone:</span>{" "}
-                    {review?.phoneSetLater
-                      ? "Will add later"
-                      : review?.phone ?? (addPhoneLater ? "Will add later" : normalizedPhone)}
-                  </p>
+              <StepCard
+                icon={<Check className="h-5 w-5" />}
+                title="Review your workspace"
+                description="Confirm your setup before Skuully creates your workspace."
+              >
+                <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface-1)] p-4">
+                  <SummaryRow
+                    label="Type"
+                    value={prettyInstitutionLabel(institutionType)}
+                  />
+                  <SummaryRow
+                    label="Name"
+                    value={review?.institutionName ?? schoolName.trim() || "—"}
+                  />
+                  <SummaryRow
+                    label="Country"
+                    value={review?.country ?? selectedCountry?.name ?? "—"}
+                  />
+                  <SummaryRow
+                    label={academicLabel}
+                    value={
+                      review?.academicSetLater
+                        ? "Will set later"
+                        : review?.academicItems?.length
+                        ? review.academicItems.join(", ")
+                        : selectedAcademicItems.length
+                        ? selectedAcademicItems.map((item) => item.label).join(", ")
+                        : "None selected"
+                    }
+                  />
+                  <SummaryRow
+                    label="Learning modes"
+                    value={
+                      review?.learningModes?.length
+                        ? review.learningModes.map(formatEnumLabel).join(", ")
+                        : details.learningModes.length
+                        ? details.learningModes.map(formatEnumLabel).join(", ")
+                        : "None"
+                    }
+                  />
+                  <SummaryRow
+                    label="Ownership"
+                    value={review?.ownership ?? details.ownership ?? "Not set"}
+                  />
+                  <SummaryRow
+                    label="Level type"
+                    value={review?.levelType ?? details.levelType ?? "Not set"}
+                  />
+                  <SummaryRow
+                    label="Admissions policy"
+                    value={
+                      review?.genderAdmissionPolicy
+                        ? formatEnumLabel(review.genderAdmissionPolicy)
+                        : details.genderAdmissionPolicy
+                        ? formatEnumLabel(details.genderAdmissionPolicy)
+                        : "Not set"
+                    }
+                  />
+                  <SummaryRow
+                    label="Verification phone"
+                    value={
+                      review?.phoneSetLater
+                        ? "Will add later"
+                        : review?.phone ??
+                          (addPhoneLater ? "Will add later" : normalizedPhone || "—")
+                    }
+                  />
                 </div>
 
-                <div className="mt-5 rounded-[20px] border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-white/52">
-                  Skuully will prepare your main workspace and initial structure from this setup.
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm leading-7 text-[var(--text-soft)]">
+                  Skuully will prepare your main workspace and its initial academic structure from this setup.
                 </div>
+              </StepCard>
+            ) : null}
+
+            {error ? (
+              <div className="rounded-2xl border border-[rgba(198,38,74,0.24)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)] dark:text-rose-100">
+                {error}
               </div>
             ) : null}
           </div>
 
-          <div className="space-y-6">
-            <MiniInfo label="Founder" value={me?.fullName ?? "Ready"} />
-            <MiniInfo
-              label="Institution type"
-              value={prettyInstitutionLabel(institutionType)}
-            />
-            <MiniInfo
-              label="Country"
-              value={selectedCountry?.name ?? "Pending"}
-            />
+          <div className="space-y-5">
+            <SummaryCard
+              icon={<Building2 className="h-4 w-4" />}
+              title="Workspace snapshot"
+            >
+              <div className="divide-y divide-[var(--border)]">
+                <SummaryRow label="Founder" value={me?.fullName ?? "Ready"} />
+                <SummaryRow
+                  label="Institution type"
+                  value={prettyInstitutionLabel(institutionType)}
+                />
+                <SummaryRow
+                  label="Country"
+                  value={selectedCountry?.name ?? "Pending"}
+                />
+                <SummaryRow
+                  label="Step"
+                  value={`${currentStep} of ${totalSteps}`}
+                />
+              </div>
+            </SummaryCard>
 
-            <div className="skuully-glass-card rounded-[24px] p-5">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                <Building2 className="h-4 w-4 text-white/72" />
+            <SummaryCard
+              icon={<Globe2 className="h-4 w-4" />}
+              title="Smart setup"
+            >
+              <p className="text-sm leading-7 text-[var(--text-soft)]">
+                Skuully uses your institution type and country to shape the most relevant setup path for your workspace.
+              </p>
+
+              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-soft)]">
+                Suggested default:{" "}
+                <span className="font-medium text-[var(--text-strong)]">
+                  {selectedCountry?.nativeCurriculumName ?? "Not available"}
+                </span>
               </div>
 
-              <h3 className="mt-4 text-lg font-medium text-white">
-                Workspace snapshot
-              </h3>
-
-              <div className="mt-4 space-y-3 text-sm text-white/55">
-                <p>
-                  <span className="text-white">Step:</span> {currentStep} of{" "}
-                  {totalSteps}
-                </p>
-                <p>
-                  <span className="text-white">Suggested default:</span>{" "}
-                  {selectedCountry?.nativeCurriculumName ?? "Not available"}
-                </p>
-                <p>
-                  <span className="text-white">Selected items:</span>{" "}
+              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-soft)]">
+                Selected items:{" "}
+                <span className="font-medium text-[var(--text-strong)]">
                   {setAcademicLater
                     ? "Later"
                     : selectedAcademicItems.length
                     ? selectedAcademicItems.map((item) => item.label).join(", ")
                     : "Pending"}
-                </p>
+                </span>
               </div>
-            </div>
+            </SummaryCard>
 
-            <div className="skuully-glass-card rounded-[24px] p-5">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                <Globe2 className="h-4 w-4 text-white/72" />
-              </div>
-
-              <h3 className="mt-4 text-lg font-medium text-white">
-                Smart setup
-              </h3>
-
-              <p className="mt-2 text-sm leading-7 text-white/55">
-                Skuully is using your institution type and country to shape the most relevant setup path for you.
+            <SummaryCard
+              icon={<LockKeyhole className="h-4 w-4" />}
+              title="Security"
+            >
+              <p className="text-sm leading-7 text-[var(--text-soft)]">
+                Email verification is already active. You can also add a phone number now or later for stronger account protection.
               </p>
-            </div>
+            </SummaryCard>
           </div>
         </div>
-
-        {error ? (
-          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-            {error}
-          </div>
-        ) : null}
       </form>
     </OnboardingShell>
   );
