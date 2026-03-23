@@ -1,7 +1,4 @@
-export type OnboardingRoute =
-  | "build_institution"
-  | "join_institution"
-  | "explore_skuully";
+export type OnboardingRoute = "build_institution" | "personal_account";
 
 export type BuildInstitutionType =
   | "school"
@@ -12,17 +9,19 @@ export type BuildInstitutionType =
   | "academy"
   | "training_center";
 
-export type JoinRole =
-  | "invite"
-  | "teacher"
-  | "student"
+export type AccountIntent =
+  | "founder"
+  | "staff"
   | "parent"
-  | "staff";
+  | "student"
+  | "professional"
+  | "explorer"
+  | "unsure";
 
 type OnboardingState = {
   route: OnboardingRoute | null;
   buildInstitutionType: BuildInstitutionType | null;
-  joinRole: JoinRole | null;
+  accountIntent: AccountIntent | null;
 };
 
 const STORAGE_KEY = "skuullyOnboardingState";
@@ -30,7 +29,7 @@ const STORAGE_KEY = "skuullyOnboardingState";
 const DEFAULT_STATE: OnboardingState = {
   route: null,
   buildInstitutionType: null,
-  joinRole: null,
+  accountIntent: null,
 };
 
 function isBrowser() {
@@ -49,7 +48,7 @@ export function readOnboardingState(): OnboardingState {
     return {
       route: parsed.route ?? null,
       buildInstitutionType: parsed.buildInstitutionType ?? null,
-      joinRole: parsed.joinRole ?? null,
+      accountIntent: parsed.accountIntent ?? null,
     };
   } catch {
     return DEFAULT_STATE;
@@ -77,22 +76,14 @@ export function setBuildInstitutionRoute(type: BuildInstitutionType) {
   writeOnboardingState({
     route: "build_institution",
     buildInstitutionType: type,
-    joinRole: null,
+    accountIntent: null,
   });
 }
 
-export function setJoinInstitutionRoute(role: JoinRole) {
+export function setPersonalAccountRoute(intent: AccountIntent) {
   writeOnboardingState({
-    route: "join_institution",
-    joinRole: role,
+    route: "personal_account",
     buildInstitutionType: null,
-  });
-}
-
-export function setExploreSkuullyRoute() {
-  writeOnboardingState({
-    route: "explore_skuully",
-    buildInstitutionType: null,
-    joinRole: null,
+    accountIntent: intent,
   });
 }

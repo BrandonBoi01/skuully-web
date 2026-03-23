@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Apple } from "lucide-react";
+
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasswordField } from "@/components/auth/password-field";
 import { FloatingNotice } from "@/components/ui/floating-notice";
+
 import {
   continueWithApple,
   continueWithGoogle,
@@ -14,46 +17,67 @@ import {
   setPendingVerificationEmail,
 } from "@/lib/auth";
 
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden="true">
+      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3 14.6 2 12 2 6.9 2 2.8 6.4 2.8 11.8S6.9 21.5 12 21.5c6.9 0 9.2-5 9.2-7.5 0-.5 0-.9-.1-1.3H12Z" />
+      <path fill="#34A853" d="M3.8 7.1l3.2 2.4C7.8 7.7 9.7 6.3 12 6.3c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3 14.6 2 12 2 8 2 4.6 4.2 3 7.4l.8-.3Z" />
+      <path fill="#FBBC05" d="M12 21.5c2.5 0 4.7-.9 6.2-2.4l-3-2.4c-.8.6-1.9 1.1-3.3 1.1-3.9 0-5.2-2.6-5.5-3.8l-3.1 2.4C4.5 19.4 8 21.5 12 21.5Z" />
+      <path fill="#4285F4" d="M21.2 12.7H12v3.9h5.5c-.3 1.1-1.1 2-2.2 2.7l3 2.4c1.8-1.7 2.9-4.2 2.9-7.4 0-.5 0-1-.1-1.6Z" />
+    </svg>
+  );
+}
+
 function mapRegisterError(message: string) {
   const text = message.toLowerCase();
 
-  if (text.includes("email already in use")) {
-    return "That email is already in use. Sign in instead, or continue with Google or Apple if you used one of them before.";
-  }
+  if (text.includes("email already in use")) return "That email is already in use.";
+  if (text.includes("full name is required")) return "Enter your full name.";
+  if (text.includes("invalid email")) return "Enter a valid email address.";
+  if (text.includes("uppercase")) return "Password needs an uppercase letter.";
+  if (text.includes("lowercase")) return "Password needs a lowercase letter.";
+  if (text.includes("number")) return "Password needs a number.";
+  if (text.includes("special character")) return "Password needs a special character.";
+  if (text.includes("request took too long")) return "The server took too long. Try again.";
+  if (text.includes("failed to fetch")) return "Could not reach the server.";
 
-  if (text.includes("full name is required")) {
-    return "Enter your full name.";
-  }
+  return "Unable to create your account.";
+}
 
-  if (text.includes("invalid email")) {
-    return "Enter a valid email address.";
-  }
+function SocialButton({
+  onClick,
+  icon,
+  label,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm font-medium text-[var(--text-main)] shadow-[var(--elev-shadow-xs)] transition hover:border-[rgba(54,97,225,0.28)] hover:bg-[var(--surface-2)] hover:text-[var(--text-strong)]"
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
 
-  if (text.includes("uppercase")) {
-    return "Your password needs an uppercase letter.";
-  }
-
-  if (text.includes("lowercase")) {
-    return "Your password needs a lowercase letter.";
-  }
-
-  if (text.includes("number")) {
-    return "Your password needs a number.";
-  }
-
-  if (text.includes("special character")) {
-    return "Your password needs a special character.";
-  }
-
-  if (text.includes("request took too long")) {
-    return "The server took too long to respond. Please try again.";
-  }
-
-  if (text.includes("failed to fetch")) {
-    return "Could not reach the server. Check that your API is running.";
-  }
-
-  return "We couldn’t create your account.";
+function PasswordRule({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div
+      className={[
+        "rounded-full px-2.5 py-1 text-[11px] font-medium transition",
+        ok
+          ? "bg-[rgba(var(--skuully-blue),0.14)] text-[var(--text-main)]"
+          : "bg-[var(--muted)] text-[var(--text-soft)]",
+      ].join(" ")}
+    >
+      {label}
+    </div>
+  );
 }
 
 export default function RegisterPage() {
@@ -104,12 +128,12 @@ export default function RegisterPage() {
     }
 
     if (!passwordIsStrong) {
-      setError("Create a stronger password to continue.");
+      setError("Create a stronger password.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Your passwords don’t match.");
+      setError("Passwords do not match.");
       return;
     }
 
@@ -124,13 +148,13 @@ export default function RegisterPage() {
 
       setPendingVerificationEmail(result.user.email);
       markVerificationCodeSent();
-      setNotice("A verification code is on its way to your email.");
+      setNotice("Verification code sent.");
       router.replace("/verify-email");
     } catch (err) {
       setError(
         err instanceof Error
           ? mapRegisterError(err.message)
-          : "We couldn’t create your account."
+          : "Unable to create your account."
       );
     } finally {
       setIsBusy(false);
@@ -140,14 +164,27 @@ export default function RegisterPage() {
   return (
     <>
       <AuthShell
-        title="Create account"
-        subtitle="Start with one secure identity."
+        title="Create your account"
+        subtitle="One secure identity for everything Skuully."
+        panelTitle={
+          <>
+            Start your journey in the
+            <span className="brand-text"> future of education.</span>
+          </>
+        }
+        panelDescription={
+          <>
+            Create your Skuully identity once and move into onboarding, learning,
+            operations, and school life with a single foundation.
+          </>
+        }
+        panelTags={["Secure identity", "Premium onboarding", "Built for modern schools"]}
         footer={
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-[var(--text-soft)]">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="text-white underline underline-offset-4"
+              className="font-medium text-[var(--text-main)] transition hover:text-[var(--text-strong)]"
             >
               Sign in
             </Link>
@@ -156,103 +193,76 @@ export default function RegisterPage() {
       >
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={continueWithGoogle}
-              className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white transition hover:bg-white/[0.06]"
-            >
-              Continue with Google
-            </button>
-
-            <button
-              type="button"
+            <SocialButton onClick={continueWithGoogle} icon={<GoogleIcon />} label="Google" />
+            <SocialButton
               onClick={continueWithApple}
-              className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white transition hover:bg-white/[0.06]"
-            >
-              Continue with Apple
-            </button>
+              icon={<Apple className="h-4 w-4 shrink-0" />}
+              label="Apple"
+            />
           </div>
 
-          <div className="relative py-1">
+          <div className="relative py-1.5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
+              <div className="w-full border-t border-[var(--border)]" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-transparent px-3 text-xs uppercase tracking-[0.18em] text-white/35">
-                Or create with email
+              <span className="bg-[var(--surface-1)] px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-[var(--text-faint)]">
+                Continue with email
               </span>
             </div>
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <div>
-              <label className="mb-2 block text-sm text-white/70">
-                Full name
-              </label>
-              <input
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-white outline-none transition placeholder:text-white/25 focus:border-white/20 focus:bg-white/[0.05]"
-                type="text"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                placeholder="Brandon Boi"
-                autoComplete="name"
-                required
-              />
-            </div>
+            <input
+              className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(54,97,225,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+              type="text"
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="Full name"
+              autoComplete="name"
+              required
+            />
 
-            <div>
-              <label className="mb-2 block text-sm text-white/70">Email</label>
-              <input
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-white outline-none transition placeholder:text-white/25 focus:border-white/20 focus:bg-white/[0.05]"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-              />
-            </div>
+            <input
+              className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(54,97,225,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email address"
+              autoComplete="email"
+              required
+            />
 
             <PasswordField
-              label="Password"
+              label=""
               value={password}
               onChange={setPassword}
-              placeholder="Create a password"
+              placeholder="Create password"
               autoComplete="new-password"
               required
             />
 
             <PasswordField
-              label="Confirm password"
+              label=""
               value={confirmPassword}
               onChange={setConfirmPassword}
-              placeholder="Repeat your password"
+              placeholder="Confirm password"
               autoComplete="new-password"
               required
               invalid={passwordsMismatch}
-              hint={passwordsMismatch ? "Passwords do not match yet." : ""}
+              hint={passwordsMismatch ? "Passwords do not match." : ""}
             />
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/45">
-              <div className={passwordChecks.min ? "text-white/75" : ""}>
-                • At least 8 characters
-              </div>
-              <div className={passwordChecks.upper ? "text-white/75" : ""}>
-                • One uppercase letter
-              </div>
-              <div className={passwordChecks.lower ? "text-white/75" : ""}>
-                • One lowercase letter
-              </div>
-              <div className={passwordChecks.number ? "text-white/75" : ""}>
-                • One number
-              </div>
-              <div className={passwordChecks.special ? "text-white/75" : ""}>
-                • One special character
-              </div>
+            <div className="flex flex-wrap gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+              <PasswordRule ok={passwordChecks.min} label="8+ chars" />
+              <PasswordRule ok={passwordChecks.upper} label="Uppercase" />
+              <PasswordRule ok={passwordChecks.lower} label="Lowercase" />
+              <PasswordRule ok={passwordChecks.number} label="Number" />
+              <PasswordRule ok={passwordChecks.special} label="Special" />
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              <div className="rounded-2xl border border-[rgba(198,38,74,0.2)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)] dark:text-rose-100">
                 {error}
               </div>
             ) : null}
@@ -260,20 +270,15 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isBusy}
-              className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-3.5 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="skuully-cta h-12 w-full rounded-2xl px-4 text-sm font-semibold tracking-[-0.01em] disabled:cursor-not-allowed disabled:opacity-55"
             >
-              {isBusy ? "Creating account..." : "Create account"}
+              <span>{isBusy ? "Creating account..." : "Create account"}</span>
             </button>
           </form>
         </div>
       </AuthShell>
 
-      <FloatingNotice
-        show={!!notice}
-        message={notice}
-        tone="success"
-        position="bottom-left"
-      />
+      <FloatingNotice show={!!notice} message={notice} tone="success" position="bottom-left" />
     </>
   );
 }

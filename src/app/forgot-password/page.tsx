@@ -51,39 +51,40 @@ function ForgotPasswordContent() {
 
   return (
     <AuthShell
-      title="Reset your password"
-      subtitle="Enter the email linked to your account and we’ll send you a reset link."
+      compact
+      title="Reset password"
+      subtitle="Enter your email and we’ll send you a reset link."
       footer={
-        <p className="text-sm text-white/50">
+        <p className="text-center text-sm text-[var(--text-soft)]">
           Remembered it?{" "}
-          <Link href="/login" className="text-white underline underline-offset-4">
-            Go back to sign in
+          <Link
+            href="/login"
+            className="font-medium text-[var(--text-main)] transition hover:text-[var(--text-strong)]"
+          >
+            Back to sign in
           </Link>
         </p>
       }
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <div>
-          <label className="mb-2 block text-sm text-white/70">Email</label>
-          <input
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-white outline-none transition placeholder:text-white/25 focus:border-white/20 focus:bg-white/[0.05]"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            required
-          />
-        </div>
+        <input
+          className="h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus:border-[rgba(54,97,225,0.36)] focus:bg-[var(--surface-2)] focus:ring-4 focus:ring-[var(--ring)]"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="Email address"
+          autoComplete="email"
+          required
+        />
 
         {error ? (
-          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+          <div className="rounded-2xl border border-[rgba(198,38,74,0.18)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)]">
             {error}
           </div>
         ) : null}
 
         {message ? (
-          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+          <div className="rounded-2xl border border-[rgba(54,97,225,0.18)] bg-[rgba(54,97,225,0.10)] px-4 py-3 text-sm text-[var(--text-main)]">
             {message}
           </div>
         ) : null}
@@ -91,9 +92,9 @@ function ForgotPasswordContent() {
         <button
           type="submit"
           disabled={isBusy}
-          className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-3.5 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="skuully-cta h-12 w-full rounded-2xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55"
         >
-          {isBusy ? "Sending link..." : "Send reset link"}
+          <span>{isBusy ? "Sending link..." : "Send reset link"}</span>
         </button>
       </form>
     </AuthShell>

@@ -73,9 +73,11 @@ function CompactStat({
   value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-      <div className="text-[11px] text-white/45">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+      <div className="text-[11px] text-[var(--text-soft)]">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-[var(--text-strong)]">
+        {value}
+      </div>
     </div>
   );
 }
@@ -88,8 +90,9 @@ function MetricPill({
   value: string | number;
 }) {
   return (
-    <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70">
-      {label}: <span className="font-semibold text-white">{value}</span>
+    <div className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs text-[var(--text-soft)]">
+      {label}:{" "}
+      <span className="font-semibold text-[var(--text-strong)]">{value}</span>
     </div>
   );
 }
@@ -107,10 +110,14 @@ function GroupList({
   const remaining = Math.max(0, items.length - visibleItems.length);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="text-sm font-medium text-white">{title}</div>
-        <div className="text-xs text-white/45">{formatCount(items.length)}</div>
+        <div className="text-sm font-medium text-[var(--text-strong)]">
+          {title}
+        </div>
+        <div className="text-xs text-[var(--text-soft)]">
+          {formatCount(items.length)}
+        </div>
       </div>
 
       {items.length > 0 ? (
@@ -118,23 +125,27 @@ function GroupList({
           {visibleItems.map((item) => (
             <div
               key={item.id}
-              className="rounded-xl border border-white/8 bg-white/5 px-3 py-2"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2"
             >
-              <div className="truncate text-sm text-white">{item.fullName}</div>
+              <div className="truncate text-sm text-[var(--text-main)]">
+                {item.fullName}
+              </div>
               {item.admissionNo ? (
-                <div className="text-xs text-white/40">{item.admissionNo}</div>
+                <div className="text-xs text-[var(--text-soft)]">
+                  {item.admissionNo}
+                </div>
               ) : null}
             </div>
           ))}
 
           {remaining > 0 ? (
-            <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/45">
+            <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-xs text-[var(--text-soft)]">
               +{formatCount(remaining)} more learners
             </div>
           ) : null}
         </div>
       ) : (
-        <div className="text-sm text-white/45">None</div>
+        <div className="text-sm text-[var(--text-soft)]">None</div>
       )}
     </div>
   );
@@ -163,8 +174,10 @@ export function ClassDrilldownPanel({ selectedClass }: Props) {
   if (!selectedClass) {
     return (
       <GlassCard className="h-full">
-        <h2 className="text-xl font-semibold">Class Drilldown</h2>
-        <p className="mt-2 text-sm text-white/55">
+        <h2 className="text-xl font-semibold text-[var(--text-strong)]">
+          Class Drilldown
+        </h2>
+        <p className="mt-2 text-sm text-[var(--text-soft)]">
           Select a class tile from the heat map to inspect the live roster state.
         </p>
       </GlassCard>
@@ -174,8 +187,10 @@ export function ClassDrilldownPanel({ selectedClass }: Props) {
   if (isLoading || !data) {
     return (
       <GlassCard glow="violet" className="h-full">
-        <h2 className="text-xl font-semibold">Loading class details...</h2>
-        <p className="mt-2 text-sm text-white/55">
+        <h2 className="text-xl font-semibold text-[var(--text-strong)]">
+          Loading class details...
+        </h2>
+        <p className="mt-2 text-sm text-[var(--text-soft)]">
           Fetching daily roster, statuses, and session details.
         </p>
       </GlassCard>
@@ -186,30 +201,35 @@ export function ClassDrilldownPanel({ selectedClass }: Props) {
     <GlassCard glow="violet" className="flex h-full flex-col overflow-hidden">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="truncate text-2xl font-semibold text-white">
+          <h2 className="truncate text-2xl font-semibold text-[var(--text-strong)]">
             {data.class.name}
           </h2>
-          <p className="mt-1 truncate text-sm text-white/50">
+          <p className="mt-1 truncate text-sm text-[var(--text-soft)]">
             {data.class.grade?.name ?? "No grade"}
           </p>
         </div>
 
-        <div className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.16em] text-white/70">
+        <div className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[var(--text-soft)]">
           {data.session?.status ?? "No session"}
         </div>
       </div>
 
       <div className="mt-4">
-        <div className="text-5xl font-semibold leading-none text-white">
+        <div className="brand-text text-5xl font-semibold leading-none">
           {formatPercent(data.summary.attendanceRate)}
         </div>
-        <div className="mt-2 text-sm text-white/45">Attendance rate</div>
+        <div className="mt-2 text-sm text-[var(--text-soft)]">
+          Attendance rate
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <MetricPill label="Roster" value={formatCount(data.summary.rosterCount)} />
         <MetricPill label="Tracked" value={formatCount(data.summary.trackedCount)} />
-        <MetricPill label="Untracked" value={formatCount(data.summary.untrackedCount)} />
+        <MetricPill
+          label="Untracked"
+          value={formatCount(data.summary.untrackedCount)}
+        />
         <MetricPill label="Signals" value={formatCount(signalCount)} />
       </div>
 
@@ -228,7 +248,7 @@ export function ClassDrilldownPanel({ selectedClass }: Props) {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-white/45">
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--text-soft)]">
         <span>Session: {data.session?.periodName ?? "Not opened"}</span>
         {isFetching ? <span>• Refreshing...</span> : null}
       </div>

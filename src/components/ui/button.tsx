@@ -6,32 +6,33 @@ import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/effects/magnetic";
 
 const buttonVariants = cva(
-  "group/button shimmer-shell inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button shimmer-shell relative inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden rounded-[calc(var(--radius)+2px)] border text-sm font-semibold whitespace-nowrap transition-all duration-200 outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 focus-visible:ring-4 focus-visible:ring-ring/50",
   {
     variants: {
       variant: {
         default:
-          "bg-[linear-gradient(135deg,rgba(54,97,225,0.95),rgba(88,66,171,0.92))] text-primary-foreground shadow-[0_0_20px_rgba(54,97,225,0.18)] hover:brightness-110",
-        outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
+          "border-transparent bg-[var(--brand-gradient)] text-white shadow-[var(--elev-shadow-sm)] hover:brightness-110 hover:shadow-[var(--elev-shadow-md)]",
         secondary:
-          "bg-[rgba(255,255,255,0.07)] text-secondary-foreground hover:bg-[rgba(255,255,255,0.12)] aria-expanded:bg-[rgba(255,255,255,0.12)] aria-expanded:text-secondary-foreground",
+          "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-main)] backdrop-blur-xl hover:bg-[var(--surface-3)] hover:shadow-[var(--elev-shadow-sm)]",
+        outline:
+          "border-[var(--border)] bg-transparent text-[var(--text-main)] hover:bg-[var(--muted)] hover:border-[rgba(var(--skuully-blue),0.22)]",
         ghost:
-          "hover:bg-[rgba(54,97,225,0.10)] hover:text-white aria-expanded:bg-[rgba(54,97,225,0.10)] aria-expanded:text-white",
+          "border-transparent bg-transparent text-[var(--text-soft)] hover:bg-[var(--brand-gradient-soft)] hover:text-[var(--text-strong)]",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border-transparent bg-[linear-gradient(135deg,rgba(198,38,74,0.95),rgba(204,70,100,0.92))] text-white shadow-[0_10px_30px_rgba(198,38,74,0.2)] hover:brightness-110",
+        link: "h-auto rounded-none border-transparent bg-transparent px-0 py-0 text-[var(--primary)] underline-offset-4 hover:underline",
+        glass:
+          "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-main)] backdrop-blur-xl shadow-[var(--elev-shadow-sm)] hover:bg-[var(--surface-2)]",
       },
       size: {
-        default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-3 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        icon: "size-8",
-        "icon-xs": "size-6 rounded-[min(var(--radius-md),10px)] [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-7 rounded-[min(var(--radius-md),12px)]",
-        "icon-lg": "size-9",
+        xs: "h-8 px-3 text-xs",
+        sm: "h-9 px-4 text-sm",
+        default: "h-10 px-4.5 text-sm",
+        lg: "h-11 px-5 text-sm",
+        xl: "h-12 px-6 text-base",
+        icon: "size-10",
+        "icon-sm": "size-9",
+        "icon-lg": "size-11",
       },
       magnetic: {
         true: "",
@@ -48,8 +49,8 @@ const buttonVariants = cva(
 
 function Button({
   className,
-  variant = "default",
-  size = "default",
+  variant,
+  size,
   asChild = false,
   magnetic = true,
   ...props
@@ -60,21 +61,17 @@ function Button({
   }) {
   const Comp = asChild ? Slot.Root : "button";
 
-  const buttonNode = (
+  const node = (
     <Comp
       data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      className={cn(buttonVariants({ variant, size, magnetic, className }))}
+      className={cn(buttonVariants({ variant, size, magnetic }), className)}
       {...props}
     />
   );
 
-  if (!magnetic || variant === "link") {
-    return buttonNode;
-  }
+  if (!magnetic || variant === "link") return node;
 
-  return <Magnetic>{buttonNode}</Magnetic>;
+  return <Magnetic>{node}</Magnetic>;
 }
 
 export { Button, buttonVariants };

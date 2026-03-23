@@ -21,25 +21,28 @@ function mapVerifyError(message: string) {
   const text = message.toLowerCase();
 
   if (text.includes("invalid or expired verification code")) {
-    return "That code is invalid or has expired.";
+    return "Invalid or expired code.";
   }
 
   if (text.includes("invalid verification request")) {
-    return "We couldn’t verify that request.";
+    return "Invalid verification request.";
   }
 
   if (text.includes("already verified")) {
-    return "This email is already verified. You can continue to sign in.";
+    return "Email already verified.";
   }
 
-  return "We couldn’t verify your email.";
+  return "Unable to verify email.";
 }
 
 function formatTime(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+    2,
+    "0"
+  )}`;
 }
 
 export default function VerifyEmailPage() {
@@ -56,7 +59,6 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     const pendingEmail = getPendingVerificationEmail();
-
     if (pendingEmail) {
       setEmail(pendingEmail);
     }
@@ -85,12 +87,12 @@ export default function VerifyEmailPage() {
     setError(null);
 
     if (!normalizedEmail) {
-      setError("Enter the email you used to create your account.");
+      setError("Enter your email.");
       return;
     }
 
     if (code.trim().length !== 6) {
-      setError("Enter the 6-digit code from your email.");
+      setError("Enter the 6-digit code.");
       return;
     }
 
@@ -100,13 +102,13 @@ export default function VerifyEmailPage() {
       await verifyEmailCode(normalizedEmail, code.trim());
       clearPendingVerificationEmail();
       clearVerificationCodeSentAt();
-      setNotice("Email verified successfully.");
+      setNotice("Email verified.");
       router.replace("/onboarding");
     } catch (err) {
       setError(
         err instanceof Error
           ? mapVerifyError(err.message)
-          : "We couldn’t verify your email."
+          : "Unable to verify email."
       );
     } finally {
       setIsVerifying(false);
@@ -117,7 +119,7 @@ export default function VerifyEmailPage() {
     setError(null);
 
     if (!normalizedEmail) {
-      setError("Enter your email first so we know where to send the code.");
+      setError("Enter your email first.");
       return;
     }
 
@@ -128,9 +130,9 @@ export default function VerifyEmailPage() {
       setPendingVerificationEmail(normalizedEmail);
       markVerificationCodeSent();
       setTimeRemaining(getVerificationTimeRemainingMs());
-      setNotice(result.message || "A fresh code is on its way.");
+      setNotice(result.message || "Code sent.");
     } catch {
-      setError("We couldn’t send a new code.");
+      setError("Unable to send a new code.");
     } finally {
       setIsResending(false);
     }
@@ -143,7 +145,7 @@ export default function VerifyEmailPage() {
     try {
       await logoutSession();
     } catch {
-      // ignore logout failures; continue clearing local verification state
+      // ignore
     } finally {
       clearPendingVerificationEmail();
       clearVerificationCodeSentAt();
@@ -158,7 +160,7 @@ export default function VerifyEmailPage() {
     try {
       await logoutSession();
     } catch {
-      // ignore logout failures; continue clearing local verification state
+      // ignore
     } finally {
       clearVerificationCodeSentAt();
       clearPendingVerificationEmail();
@@ -169,42 +171,38 @@ export default function VerifyEmailPage() {
   return (
     <>
       <AuthShell
-        title="Check your email"
-        subtitle="Enter the 6-digit code we sent. Most codes arrive within a minute. If it takes longer than a few minutes, resend it or use another email."
+        compact
+        title="Verify your email"
+        subtitle="Enter the 6-digit code sent to your inbox."
         footer={
-          <div className="space-y-3 text-sm text-white/50">
-            <p>
-              Wrong email or no code yet? You can resend, change your email, or
-              go back to sign in.
-            </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
+            <button
+              type="button"
+              onClick={handleChangeEmail}
+              disabled={isLeaving || isVerifying || isResending}
+              className="text-[var(--text-main)] underline underline-offset-4 disabled:opacity-50"
+            >
+              Change email
+            </button>
 
-            <div className="flex flex-wrap gap-4">
-              <button
-                type="button"
-                onClick={handleChangeEmail}
-                disabled={isLeaving || isVerifying || isResending}
-                className="text-white underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLeaving ? "Leaving..." : "Change email"}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleBackToLogin}
-                disabled={isLeaving || isVerifying || isResending}
-                className="text-white underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLeaving ? "Leaving..." : "Back to sign in"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleBackToLogin}
+              disabled={isLeaving || isVerifying || isResending}
+              className="text-[var(--text-main)] underline underline-offset-4 disabled:opacity-50"
+            >
+              Back to sign in
+            </button>
           </div>
         }
       >
         <form className="space-y-4" onSubmit={handleVerify}>
-          <div>
-            <label className="mb-2 block text-sm text-white/70">Email</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-[var(--text-main)]">
+              Email
+            </label>
             <input
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-white outline-none transition placeholder:text-white/25 focus:border-white/20 focus:bg-white/[0.05]"
+              className="h-12 w-full rounded-[calc(var(--radius)+4px)] border border-[var(--border)] bg-[var(--input)] px-4 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus-visible:border-[rgba(var(--skuully-blue),0.42)] focus-visible:ring-4 focus-visible:ring-ring/50"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -214,20 +212,24 @@ export default function VerifyEmailPage() {
             />
           </div>
 
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-sm text-white/70">Code</label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-[var(--text-main)]">
+                Code
+              </label>
               <span
                 className={`text-xs ${
-                  expired ? "text-rose-300" : "text-white/45"
+                  expired
+                    ? "text-[rgb(var(--skuully-magenta))]"
+                    : "text-[var(--text-soft)]"
                 }`}
               >
-                {expired ? "Code expired" : `Expires in ${formatTime(timeRemaining)}`}
+                {expired ? "Expired" : formatTime(timeRemaining)}
               </span>
             </div>
 
             <input
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-center text-lg tracking-[0.35em] text-white outline-none transition placeholder:text-white/25 focus:border-white/20 focus:bg-white/[0.05]"
+              className="h-14 w-full rounded-[calc(var(--radius)+6px)] border border-[var(--border)] bg-[var(--input)] px-4 text-center text-lg tracking-[0.35em] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-faint)] focus-visible:border-[rgba(var(--skuully-blue),0.42)] focus-visible:ring-4 focus-visible:ring-ring/50"
               value={code}
               onChange={(event) =>
                 setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
@@ -239,13 +241,8 @@ export default function VerifyEmailPage() {
             />
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">
-            Didn’t get the code? Check spam or promotions first. If it still
-            doesn’t arrive within 2–3 minutes, resend it or change your email.
-          </div>
-
           {error ? (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+            <div className="rounded-2xl border border-[rgba(198,38,74,0.18)] bg-[rgba(198,38,74,0.10)] px-4 py-3 text-sm text-[var(--text-main)]">
               {error}
             </div>
           ) : null}
@@ -258,23 +255,26 @@ export default function VerifyEmailPage() {
               !normalizedEmail ||
               code.trim().length !== 6
             }
-            className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-3.5 text-sm font-medium text-black transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="skuully-cta h-12 w-full rounded-2xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {isVerifying ? "Verifying..." : "Continue"}
+            <span>{isVerifying ? "Verifying..." : "Continue"}</span>
           </button>
 
           <button
             type="button"
             onClick={handleResend}
             disabled={!canResend}
-            className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm text-white/75 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 text-sm font-medium text-[var(--text-main)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isResending ? "Sending..." : "Resend code"}
           </button>
 
-          <div className="text-center text-sm text-white/45">
-            Prefer signing in instead?{" "}
-            <Link href="/login" className="text-white underline underline-offset-4">
+          <div className="text-center text-sm text-[var(--text-soft)]">
+            Prefer sign in?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-[var(--text-main)] underline underline-offset-4"
+            >
               Open sign in
             </Link>
           </div>

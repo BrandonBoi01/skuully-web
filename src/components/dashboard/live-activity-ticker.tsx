@@ -32,20 +32,20 @@ export function LiveActivityTicker({
   }, [safeItems]);
 
   return (
-    <div className="relative flex min-h-[52px] items-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-xl xl:px-5">
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#060816] to-transparent opacity-60" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#060816] to-transparent opacity-60" />
+    <div className="glass-strong relative flex min-h-[56px] items-center overflow-hidden rounded-[var(--radius-xl)] px-4 py-2 xl:px-5">
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[var(--surface-0)] to-transparent opacity-70" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[var(--surface-0)] to-transparent opacity-70" />
 
-      <div className="flex items-center gap-3 text-xs text-white/65">
-        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[rgba(54,97,225,0.95)] shadow-[0_0_16px_rgba(54,97,225,0.55)]" />
-        <span className="uppercase tracking-[0.22em] text-white/40">
+      <div className="flex items-center gap-3 text-xs text-[var(--text-main)]">
+        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[rgb(var(--skuully-blue))] shadow-[0_0_18px_rgba(54,97,225,0.5)]" />
+        <span className="uppercase tracking-[0.22em] text-[var(--text-soft)]">
           Live Feed
         </span>
 
         <div className="relative h-4 min-w-[220px] overflow-hidden">
           <div
             key={index}
-            className="ticker-slide absolute inset-0 whitespace-nowrap text-white/72"
+            className="ticker-slide absolute inset-0 whitespace-nowrap text-[var(--text-main)]"
           >
             {safeItems[index]}
           </div>

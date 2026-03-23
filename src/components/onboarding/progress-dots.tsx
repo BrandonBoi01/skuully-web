@@ -25,12 +25,12 @@ export function ProgressDots({ total, current }: ProgressDotsProps) {
           <span
             key={step}
             className={[
-              "h-2 rounded-full transition-all duration-200",
+              "h-2 rounded-full transition-all duration-300",
               active
-                ? "w-8 bg-white"
+                ? "w-8 bg-[var(--brand-gradient)] shadow-[var(--glow-blue)]"
                 : complete
-                ? "w-3 bg-white/60"
-                : "w-3 bg-white/20",
+                ? "w-3 bg-[rgba(var(--skuully-blue),0.45)]"
+                : "w-3 bg-[var(--border)]",
             ].join(" ")}
           />
         );

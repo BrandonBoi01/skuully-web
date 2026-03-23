@@ -5,5 +5,5 @@ type QuestionStepProps = {
 };
 
 export function QuestionStep({ children }: QuestionStepProps) {
-  return <section className="mt-2">{children}</section>;
+  return <section className="mt-2 space-y-6">{children}</section>;
 }

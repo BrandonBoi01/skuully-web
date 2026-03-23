@@ -1,4 +1,3 @@
-// src/components/effects/magnetic.tsx
 "use client";
 
 import { ReactNode, useRef } from "react";
@@ -32,7 +31,6 @@ export function Magnetic({
   function handlePointerLeave() {
     const el = ref.current;
     if (!el) return;
-
     el.style.setProperty("--mx", "0px");
     el.style.setProperty("--my", "0px");
   }

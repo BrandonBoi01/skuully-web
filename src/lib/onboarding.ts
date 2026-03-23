@@ -1,15 +1,13 @@
 import { API_URL } from "@/lib/api";
-
 import type {
+  AccountIntent,
   BuildInstitutionType,
-  JoinRole,
   OnboardingRoute,
 } from "@/lib/onboarding-flow";
 
 function mapRouteToApi(route: OnboardingRoute) {
   if (route === "build_institution") return "BUILD_INSTITUTION";
-  if (route === "join_institution") return "JOIN_INSTITUTION";
-  return "EXPLORE_SKUULLY";
+  return "PERSONAL_ACCOUNT";
 }
 
 function mapInstitutionTypeToApi(type: BuildInstitutionType) {
@@ -22,8 +20,8 @@ function mapInstitutionTypeToApi(type: BuildInstitutionType) {
   return "TRAINING_CENTER";
 }
 
-function mapJoinRoleToApi(role: JoinRole) {
-  return role.toUpperCase();
+function mapAccountIntentToApi(intent: AccountIntent) {
+  return intent.toUpperCase();
 }
 
 async function parseResponse<T>(res: Response): Promise<T> {
@@ -90,33 +88,41 @@ export type LearningMode =
   | "ONLINE"
   | "HYBRID";
 
-/* ---------------- BUILD INSTITUTION ---------------- */
+export type GetMyOnboardingResponse = {
+  route: string | null;
+  accountIntent?: string | null;
+  currentStep: string | null;
+  completedAt: string | null;
+  draft: {
+    institutionType?: string | null;
+    institutionName?: string | null;
+    country?: string | null;
+    countryCode?: string | null;
+    skuullyId?: string | null;
+    personalHeadline?: string | null;
+    dateOfBirth?: string | null;
+    academicLabel?: string | null;
+    academicItems?: string[];
+    academicSetLater?: boolean;
+    learningModes?: string[];
+    ownership?: string | null;
+    levelType?: string | null;
+    genderAdmissionPolicy?: string | null;
+    phoneCountryCode?: string | null;
+    phoneDialCode?: string | null;
+    phoneNational?: string | null;
+    phoneE164?: string | null;
+    phoneSetLater?: boolean;
+  } | null;
+};
+
+/* ---------------- GET ONBOARDING ---------------- */
 
 export async function getMyOnboarding() {
-  return api<{
-    route: string | null;
-    currentStep: string | null;
-    completedAt: string | null;
-    draft: {
-      institutionType?: string | null;
-      institutionName?: string | null;
-      country?: string | null;
-      countryCode?: string | null;
-      academicLabel?: string | null;
-      academicItems?: string[];
-      academicSetLater?: boolean;
-      learningModes?: string[];
-      ownership?: string | null;
-      levelType?: string | null;
-      genderAdmissionPolicy?: string | null;
-      phoneCountryCode?: string | null;
-      phoneDialCode?: string | null;
-      phoneNational?: string | null;
-      phoneE164?: string | null;
-      phoneSetLater?: boolean;
-    } | null;
-  }>("/onboarding/me");
+  return api<GetMyOnboardingResponse>("/onboarding/me");
 }
+
+/* ---------------- BUILD INSTITUTION ---------------- */
 
 export async function saveBuildIdentity(input: {
   institutionType: string;
@@ -220,100 +226,33 @@ export async function completeBuildInstitution() {
   });
 }
 
-/* ---------------- JOIN INSTITUTION ---------------- */
+/* ---------------- PERSONAL ACCOUNT ---------------- */
 
-export async function searchJoinInstitutions(input: {
-  query: string;
-  mode: "name" | "skuully_id";
-  role: JoinRole;
-}) {
-  const params = new URLSearchParams({
-    query: input.query,
-    mode: input.mode,
-    role: mapJoinRoleToApi(input.role),
-  });
-
-  return api<{
-    items: Array<{
-      id: string;
-      name: string;
-      country: string;
-      countryCode?: string | null;
-      institutionType?: string | null;
-      skuullyId?: string | null;
-    }>;
-  }>(`/onboarding/join/search?${params.toString()}`);
-}
-
-export async function submitJoinInviteCode(input: {
-  code: string;
-  role: JoinRole;
-}) {
-  return api<{
-    message: string;
-    institution?: {
-      id: string;
-      name: string;
-      country?: string | null;
-    };
-  }>("/onboarding/join/invite", {
-    method: "POST",
-    body: JSON.stringify({
-      code: input.code,
-      role: mapJoinRoleToApi(input.role),
-    }),
-  });
-}
-
-export async function selectJoinInstitution(input: {
-  schoolId: string;
-  role: JoinRole;
-}) {
-  return api<{ message: string }>("/onboarding/join/select", {
-    method: "POST",
-    body: JSON.stringify({
-      schoolId: input.schoolId,
-      role: mapJoinRoleToApi(input.role),
-    }),
-  });
-}
-
-export async function completeJoinInstitution() {
-  return api<{ message: string; active?: unknown }>("/onboarding/join/complete", {
-    method: "POST",
-  });
-}
-
-/* ---------------- EXPLORE SKUULLY ---------------- */
-
-export async function saveExploreIdentity(input: {
+export async function savePersonalIdentity(input: {
   skuullyId: string;
-}) {
-  return api<{ message: string; currentStep?: string }>(
-    "/onboarding/explore/identity",
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    }
-  );
-}
-
-export async function saveExploreProfile(input: {
   fullName: string;
+  accountIntent: AccountIntent;
   headline?: string;
+  dateOfBirth?: string;
 }) {
   return api<{ message: string; currentStep?: string }>(
-    "/onboarding/explore/profile",
+    "/onboarding/personal/identity",
     {
       method: "POST",
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        skuullyId: input.skuullyId,
+        fullName: input.fullName,
+        accountIntent: mapAccountIntentToApi(input.accountIntent),
+        headline: input.headline,
+        dateOfBirth: input.dateOfBirth,
+      }),
     }
   );
 }
 
-export async function completeExploreSkuully() {
+export async function completePersonalAccount() {
   return api<{ message: string; active?: unknown }>(
-    "/onboarding/explore/complete",
+    "/onboarding/personal/complete",
     {
       method: "POST",
     }
@@ -329,7 +268,7 @@ export async function sendPhoneCode(input: {
   e164: string;
 }) {
   return api<{ message: string; expiresInSeconds?: number }>(
-    "/onboarding/build/security/send-phone-code",
+    "/onboarding/security/send-phone-code",
     {
       method: "POST",
       body: JSON.stringify(input),
@@ -346,14 +285,14 @@ export async function verifyPhoneCode(input: {
     verified: boolean;
     phone?: string;
     phoneVerified?: boolean;
-  }>("/onboarding/build/security/verify-phone-code", {
+  }>("/onboarding/security/verify-phone-code", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export async function skipPhoneStep() {
-  return api<{ message: string }>("/onboarding/build/security/skip", {
+  return api<{ message: string }>("/onboarding/security/skip", {
     method: "POST",
   });
 }
@@ -363,5 +302,5 @@ export async function skipPhoneStep() {
 export {
   mapRouteToApi,
   mapInstitutionTypeToApi,
-  mapJoinRoleToApi,
+  mapAccountIntentToApi,
 };

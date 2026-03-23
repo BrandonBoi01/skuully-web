@@ -26,16 +26,18 @@ export function OnboardingShell({
   align = "center",
 }: OnboardingShellProps) {
   return (
-    <div className="skuully-cinematic-bg min-h-screen text-white">
+    <div className="min-h-screen bg-[var(--surface-0)] text-[var(--foreground)]">
       <div className="relative isolate min-h-screen overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(58,109,255,0.08),transparent_24%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[var(--hero-gradient)]" />
+        <div className="pointer-events-none ambient-grid absolute inset-0 opacity-[0.07]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(var(--skuully-blue),0.07),transparent_24%)]" />
 
         <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
           <header className="flex items-center justify-between gap-4">
-            <SkuullyLogo />
+            <SkuullyLogo variant="auto" />
 
             <div className="flex items-center gap-4">
-              <div className="hidden text-sm text-white/45 sm:block">
+              <div className="hidden text-sm text-[var(--text-soft)] sm:block">
                 Step {step} of {totalSteps}
               </div>
               <ProgressDots total={totalSteps} current={step} />
@@ -48,25 +50,25 @@ export function OnboardingShell({
               align === "center" ? "items-center" : "items-start pt-14",
             ].join(" ")}
           >
-            <div className="skuully-glass-card w-full rounded-[32px] p-6 sm:p-8 md:p-10">
+            <div className="glass-strong w-full rounded-[32px] p-6 sm:p-8 md:p-10">
               <div className="mb-8 flex items-start justify-between gap-4">
                 <div>
                   {backHref ? (
                     <Link
                       href={backHref}
-                      className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/[0.06] hover:text-white"
+                      className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--text-soft)] transition hover:bg-[var(--surface-3)] hover:text-[var(--text-main)]"
                     >
                       <ArrowLeft className="h-3.5 w-3.5" />
                       Back
                     </Link>
                   ) : null}
 
-                  <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-[var(--text-strong)] sm:text-4xl">
                     {title}
                   </h1>
 
                   {subtitle ? (
-                    <p className="mt-3 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
+                    <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-soft)] sm:text-base">
                       {subtitle}
                     </p>
                   ) : null}

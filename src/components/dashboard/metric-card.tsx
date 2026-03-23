@@ -12,33 +12,33 @@ type MetricCardProps = {
 
 const glowMap = {
   blue: {
-    orb: "bg-[radial-gradient(circle_at_top_right,rgba(54,97,225,0.22),transparent_38%)]",
+    orb: "bg-[radial-gradient(circle_at_top_right,rgba(var(--skuully-blue),0.18),transparent_42%)]",
     iconWrap:
-      "border-[rgba(54,97,225,0.24)] bg-[rgba(54,97,225,0.10)] shadow-[0_0_20px_rgba(54,97,225,0.14)]",
-    icon: "text-[#9bb4ff]",
+      "border-[rgba(var(--skuully-blue),0.22)] bg-[rgba(var(--skuully-blue),0.10)] shadow-[var(--glow-blue)]",
+    icon: "text-[rgb(var(--skuully-blue))]",
   },
   violet: {
-    orb: "bg-[radial-gradient(circle_at_top_right,rgba(88,66,171,0.24),transparent_38%)]",
+    orb: "bg-[radial-gradient(circle_at_top_right,rgba(var(--skuully-violet),0.18),transparent_42%)]",
     iconWrap:
-      "border-[rgba(88,66,171,0.24)] bg-[rgba(88,66,171,0.10)] shadow-[0_0_20px_rgba(88,66,171,0.14)]",
-    icon: "text-[#c1b4ff]",
+      "border-[rgba(var(--skuully-violet),0.22)] bg-[rgba(var(--skuully-violet),0.10)] shadow-[var(--glow-violet)]",
+    icon: "text-[rgb(var(--skuully-violet))]",
   },
   purple: {
-    orb: "bg-[radial-gradient(circle_at_top_right,rgba(165,94,149,0.24),transparent_38%)]",
+    orb: "bg-[radial-gradient(circle_at_top_right,rgba(var(--skuully-purple),0.18),transparent_42%)]",
     iconWrap:
-      "border-[rgba(165,94,149,0.24)] bg-[rgba(165,94,149,0.10)] shadow-[0_0_20px_rgba(165,94,149,0.14)]",
-    icon: "text-[#f0b7df]",
+      "border-[rgba(var(--skuully-purple),0.22)] bg-[rgba(var(--skuully-purple),0.10)] shadow-[var(--glow-purple)]",
+    icon: "text-[rgb(var(--skuully-purple))]",
   },
   magenta: {
-    orb: "bg-[radial-gradient(circle_at_top_right,rgba(198,38,74,0.22),transparent_38%)]",
+    orb: "bg-[radial-gradient(circle_at_top_right,rgba(var(--skuully-magenta),0.18),transparent_42%)]",
     iconWrap:
-      "border-[rgba(198,38,74,0.24)] bg-[rgba(198,38,74,0.10)] shadow-[0_0_20px_rgba(198,38,74,0.14)]",
-    icon: "text-[#ff9fba]",
+      "border-[rgba(var(--skuully-magenta),0.22)] bg-[rgba(var(--skuully-magenta),0.10)] shadow-[var(--glow-magenta)]",
+    icon: "text-[rgb(var(--skuully-magenta))]",
   },
   none: {
     orb: "",
-    iconWrap: "border-white/10 bg-white/5",
-    icon: "text-white/80",
+    iconWrap: "border-[var(--border)] bg-[var(--surface-2)]",
+    icon: "text-[var(--text-main)]",
   },
 } as const;
 
@@ -52,18 +52,18 @@ export function MetricCard({
   const tone = glowMap[glow];
 
   return (
-    <GlassCard glow="none" className="relative overflow-hidden shimmer-shell">
+    <GlassCard glow="none" className="shimmer-shell relative overflow-hidden">
       <div
-        className={cn("pointer-events-none absolute inset-0 opacity-70", tone.orb)}
+        className={cn("pointer-events-none absolute inset-0 opacity-80", tone.orb)}
       />
 
       <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-sm text-white/60">{label}</p>
-          <h3 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+          <p className="text-sm text-[var(--text-soft)]">{label}</p>
+          <h3 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text-strong)]">
             {value}
           </h3>
-          {hint ? <p className="mt-2 text-xs text-white/50">{hint}</p> : null}
+          {hint ? <p className="mt-2 text-xs text-[var(--text-soft)]">{hint}</p> : null}
         </div>
 
         <div

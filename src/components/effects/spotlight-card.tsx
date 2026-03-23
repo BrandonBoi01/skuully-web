@@ -1,4 +1,3 @@
-// src/components/effects/spotlight-card.tsx
 "use client";
 
 import { ReactNode, useRef } from "react";
@@ -30,9 +29,8 @@ export function SpotlightCard({
   function handlePointerLeave() {
     const el = ref.current;
     if (!el) return;
-
-    el.style.setProperty("--spot-x", `50%`);
-    el.style.setProperty("--spot-y", `50%`);
+    el.style.setProperty("--spot-x", "50%");
+    el.style.setProperty("--spot-y", "50%");
   }
 
   return (

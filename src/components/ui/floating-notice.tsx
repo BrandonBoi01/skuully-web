@@ -15,10 +15,10 @@ export function FloatingNotice({
 
   const toneClass =
     tone === "success"
-      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+      ? "border-emerald-500/20 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
       : tone === "error"
-      ? "border-rose-400/20 bg-rose-400/10 text-rose-100"
-      : "border-white/10 bg-white/[0.06] text-white/85";
+      ? "border-rose-500/20 bg-rose-500/12 text-rose-700 dark:text-rose-300"
+      : "border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-main)]";
 
   const positionClass =
     position === "top-right"
@@ -27,7 +27,11 @@ export function FloatingNotice({
 
   return (
     <div
-      className={`fixed z-[100] max-w-sm rounded-2xl border px-4 py-3 text-sm shadow-[0_16px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl ${toneClass} ${positionClass}`}
+      className={[
+        "glass-strong ticker-slide fixed z-[100] max-w-sm rounded-[var(--radius-xl)] px-4 py-3 text-sm shadow-[var(--elev-shadow-lg)]",
+        positionClass,
+        toneClass,
+      ].join(" ")}
     >
       {message}
     </div>

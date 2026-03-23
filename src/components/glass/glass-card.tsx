@@ -13,7 +13,7 @@ export function GlassCard({
   return (
     <div
       className={cn(
-        "glass hover-lift rounded-3xl p-5 transition-all duration-300",
+        "glass hover-lift rounded-[var(--radius-xl)] p-5 transition-all duration-300",
         glow === "blue" && "glow-blue",
         glow === "violet" && "glow-violet",
         glow === "purple" && "glow-purple",

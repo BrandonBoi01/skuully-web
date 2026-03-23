@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type SkuullyLogoVariant =
+  | "auto"
   | "long-white"
   | "white-icon"
   | "original-icon"
@@ -25,7 +26,7 @@ type ModernProps = {
 
 export type SkuullyLogoProps = LegacyProps & ModernProps;
 
-const variantMap: Record<SkuullyLogoVariant, string> = {
+const variantMap: Record<Exclude<SkuullyLogoVariant, "auto">, string> = {
   "long-white": "/skuully-long-white-logo.svg",
   "white-icon": "/skuully-white-icon.svg",
   "original-icon": "/skuully-original-icon.svg",
@@ -36,13 +37,18 @@ const variantMap: Record<SkuullyLogoVariant, string> = {
 function resolveVariant(
   variant?: SkuullyLogoVariant,
   showText?: boolean
-): SkuullyLogoVariant {
-  if (variant) return variant;
-  return showText ? "original-white-name" : "white-icon";
+): Exclude<SkuullyLogoVariant, "auto"> {
+  if (variant && variant !== "auto") return variant;
+
+  if (showText) {
+    return "original-original-name";
+  }
+
+  return "original-icon";
 }
 
 function resolveDimensions(input: {
-  variant: SkuullyLogoVariant;
+  variant: Exclude<SkuullyLogoVariant, "auto">;
   width?: number;
   height?: number;
   size?: number;
@@ -58,14 +64,11 @@ function resolveDimensions(input: {
       case "white-icon":
       case "original-icon":
         return { width: size, height: size };
-
       case "long-white":
         return { width: Math.round(size * 4.4), height: size };
-
       case "original-white-name":
       case "original-original-name":
         return { width: Math.round(size * 4.1), height: size };
-
       default:
         return { width: Math.round(size * 4), height: size };
     }
@@ -75,14 +78,11 @@ function resolveDimensions(input: {
     case "white-icon":
     case "original-icon":
       return { width: 32, height: 32 };
-
     case "long-white":
       return { width: 150, height: 34 };
-
     case "original-white-name":
     case "original-original-name":
       return { width: 148, height: 34 };
-
     default:
       return { width: 148, height: 34 };
   }
@@ -90,7 +90,7 @@ function resolveDimensions(input: {
 
 export function SkuullyLogo({
   href = "/",
-  variant,
+  variant = "auto",
   width,
   height,
   size,
@@ -119,9 +119,7 @@ export function SkuullyLogo({
     />
   );
 
-  if (!href) {
-    return image;
-  }
+  if (!href) return image;
 
   return (
     <Link href={href} className="inline-flex items-center">
