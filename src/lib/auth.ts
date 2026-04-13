@@ -1,8 +1,8 @@
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 export type AuthProvider = "EMAIL" | "GOOGLE" | "APPLE";
 
-type LoginResponse = {
+export type LoginResponse = {
   requiresEmailVerification?: boolean;
   emailVerified?: boolean;
   phoneVerified?: boolean;
@@ -17,7 +17,7 @@ type LoginResponse = {
   };
 };
 
-type RegisterResponse = {
+export type RegisterResponse = {
   message: string;
   requiresEmailVerification?: boolean;
   emailVerified?: boolean;
@@ -64,104 +64,83 @@ export type MeResponse = {
   };
 };
 
-type VerifyEmailResponse = {
+export type VerifyEmailResponse = {
   message: string;
   emailVerified?: boolean;
 };
 
-type ResendVerificationResponse = {
+export type ResendVerificationResponse = {
   message: string;
   emailVerified?: boolean;
 };
 
-type ForgotPasswordResponse = {
+export type ForgotPasswordResponse = {
   message: string;
 };
 
-type ResetPasswordResponse = {
+export type ResetPasswordResponse = {
   message: string;
 };
 
-type LogoutResponse = {
+export type LogoutResponse = {
   message: string;
 };
 
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
-const LAST_LOGIN_METHOD_KEY = "skuullyLastLoginMethod";
-const LAST_LOGIN_EMAIL_KEY = "skuullyLastLoginEmail";
-const PENDING_VERIFICATION_EMAIL_KEY = "pendingVerificationEmail";
-const VERIFICATION_SENT_AT_KEY = "verificationCodeSentAt";
-const PENDING_RESET_EMAIL_KEY = "pendingResetEmail";
+
+const STORAGE_KEYS = {
+  lastLoginMethod: "skuullyLastLoginMethod",
+  lastLoginEmail: "skuullyLastLoginEmail",
+  pendingVerificationEmail: "pendingVerificationEmail",
+  verificationCodeSentAt: "verificationCodeSentAt",
+  pendingResetEmail: "pendingResetEmail",
+} as const;
 
 function isBrowser() {
   return typeof window !== "undefined";
 }
 
-export function getPendingVerificationEmail() {
+function safeGet(key: string) {
   if (!isBrowser()) return null;
-  return localStorage.getItem(PENDING_VERIFICATION_EMAIL_KEY);
-}
 
-export function setPendingVerificationEmail(email: string) {
-  if (!isBrowser()) return;
-  localStorage.setItem(PENDING_VERIFICATION_EMAIL_KEY, email);
-}
-
-export function clearPendingVerificationEmail() {
-  if (!isBrowser()) return;
-  localStorage.removeItem(PENDING_VERIFICATION_EMAIL_KEY);
-}
-
-export function markVerificationCodeSent() {
-  if (!isBrowser()) return;
-  localStorage.setItem(VERIFICATION_SENT_AT_KEY, String(Date.now()));
-}
-
-export function getVerificationCodeSentAt() {
-  if (!isBrowser()) return null;
-  const raw = localStorage.getItem(VERIFICATION_SENT_AT_KEY);
-  return raw ? Number(raw) : null;
-}
-
-export function clearVerificationCodeSentAt() {
-  if (!isBrowser()) return;
-  localStorage.removeItem(VERIFICATION_SENT_AT_KEY);
-}
-
-export function getVerificationTimeRemainingMs() {
-  const sentAt = getVerificationCodeSentAt();
-  if (!sentAt) return 0;
-  return Math.max(0, sentAt + VERIFICATION_TTL_MS - Date.now());
-}
-
-export function getPendingResetEmail() {
-  if (!isBrowser()) return null;
-  return localStorage.getItem(PENDING_RESET_EMAIL_KEY);
-}
-
-export function setPendingResetEmail(email: string) {
-  if (!isBrowser()) return;
-  localStorage.setItem(PENDING_RESET_EMAIL_KEY, email);
-}
-
-export function clearPendingResetEmail() {
-  if (!isBrowser()) return;
-  localStorage.removeItem(PENDING_RESET_EMAIL_KEY);
-}
-
-export function setLastLoginMethod(method: AuthProvider, email?: string | null) {
-  if (!isBrowser()) return;
-  localStorage.setItem(LAST_LOGIN_METHOD_KEY, method);
-
-  if (email?.trim()) {
-    localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email.trim().toLowerCase());
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
   }
 }
 
-export function getLastLoginMethod(): AuthProvider | null {
-  if (!isBrowser()) return null;
+function safeSet(key: string, value: string) {
+  if (!isBrowser()) return;
 
-  const value = localStorage.getItem(LAST_LOGIN_METHOD_KEY);
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function safeRemove(key: string) {
+  if (!isBrowser()) return;
+
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function normalizeEmail(email?: string | null) {
+  return email?.trim().toLowerCase() || "";
+}
+
+function normalizeIdentifier(identifier: string) {
+  return identifier.trim().toLowerCase();
+}
+
+function normalizeProvider(
+  value?: string | null
+): AuthProvider | null {
   if (value === "EMAIL" || value === "GOOGLE" || value === "APPLE") {
     return value;
   }
@@ -169,97 +148,94 @@ export function getLastLoginMethod(): AuthProvider | null {
   return null;
 }
 
-export function getLastLoginEmail() {
-  if (!isBrowser()) return null;
-  return localStorage.getItem(LAST_LOGIN_EMAIL_KEY);
+export function getPendingVerificationEmail() {
+  return safeGet(STORAGE_KEYS.pendingVerificationEmail);
 }
 
-export function clearLastLoginHint() {
-  if (!isBrowser()) return;
-  localStorage.removeItem(LAST_LOGIN_METHOD_KEY);
-  localStorage.removeItem(LAST_LOGIN_EMAIL_KEY);
+export function setPendingVerificationEmail(email: string) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return;
+  safeSet(STORAGE_KEYS.pendingVerificationEmail, normalized);
 }
 
-function getCsrfTokenFromCookie() {
-  if (typeof document === "undefined") return null;
-
-  const cookie = document.cookie
-    .split("; ")
-    .find((item) => item.startsWith("skuully_csrf_token="));
-
-  if (!cookie) return null;
-
-  return decodeURIComponent(cookie.split("=")[1]);
+export function clearPendingVerificationEmail() {
+  safeRemove(STORAGE_KEYS.pendingVerificationEmail);
 }
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const method = (init?.method || "GET").toUpperCase();
-  const csrfToken = getCsrfTokenFromCookie();
+export function markVerificationCodeSent() {
+  safeSet(STORAGE_KEYS.verificationCodeSentAt, String(Date.now()));
+}
 
-  const headers: HeadersInit = {
-    ...(init?.headers ?? {}),
-    ...(method !== "GET" &&
-    method !== "HEAD" &&
-    method !== "OPTIONS" &&
-    csrfToken
-      ? { "X-CSRF-Token": csrfToken }
-      : {}),
-  };
+export function getVerificationCodeSentAt() {
+  const raw = safeGet(STORAGE_KEYS.verificationCodeSentAt);
+  if (!raw) return null;
 
-  const controller = new AbortController();
-  const timeout = typeof window !== "undefined"
-    ? window.setTimeout(() => controller.abort(), 20000)
-    : null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
-  try {
-    const res = await fetch(url, {
-      ...init,
-      headers,
-      credentials: "include",
-      signal: controller.signal,
-    });
+export function clearVerificationCodeSentAt() {
+  safeRemove(STORAGE_KEYS.verificationCodeSentAt);
+}
 
-    const text = await res.text();
+export function getVerificationTimeRemainingMs() {
+  const sentAt = getVerificationCodeSentAt();
+  if (!sentAt) return 0;
 
-    if (!res.ok) {
-      let message = "Request failed";
+  return Math.max(0, sentAt + VERIFICATION_TTL_MS - Date.now());
+}
 
-      try {
-        const parsed = text ? JSON.parse(text) : null;
-        message =
-          Array.isArray(parsed?.message)
-            ? parsed.message[0]
-            : parsed?.message || text || message;
-      } catch {
-        message = text || message;
-      }
+export function getPendingResetEmail() {
+  return safeGet(STORAGE_KEYS.pendingResetEmail);
+}
 
-      throw new Error(message);
-    }
+export function setPendingResetEmail(email: string) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return;
+  safeSet(STORAGE_KEYS.pendingResetEmail, normalized);
+}
 
-    return text ? (JSON.parse(text) as T) : ({} as T);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("The request took too long. Please try again.");
-    }
-    throw error;
-  } finally {
-    if (timeout) {
-      window.clearTimeout(timeout);
-    }
+export function clearPendingResetEmail() {
+  safeRemove(STORAGE_KEYS.pendingResetEmail);
+}
+
+export function setLastLoginMethod(method: AuthProvider, email?: string | null) {
+  safeSet(STORAGE_KEYS.lastLoginMethod, method);
+
+  const normalized = normalizeEmail(email);
+  if (normalized) {
+    safeSet(STORAGE_KEYS.lastLoginEmail, normalized);
+  } else if (method !== "EMAIL") {
+    safeRemove(STORAGE_KEYS.lastLoginEmail);
   }
 }
 
-export async function loginWithIdentifier(
-  identifier: string,
-  password: string
-) {
-  const response = await fetchJson<LoginResponse>(`${API_URL}/auth/login`, {
+export function getLastLoginMethod(): AuthProvider | null {
+  return normalizeProvider(safeGet(STORAGE_KEYS.lastLoginMethod));
+}
+
+export function getLastLoginEmail() {
+  return safeGet(STORAGE_KEYS.lastLoginEmail);
+}
+
+export function clearLastLoginHint() {
+  safeRemove(STORAGE_KEYS.lastLoginMethod);
+  safeRemove(STORAGE_KEYS.lastLoginEmail);
+}
+
+export function clearAuthFlowState() {
+  clearPendingVerificationEmail();
+  clearVerificationCodeSentAt();
+  clearPendingResetEmail();
+}
+
+export async function loginWithIdentifier(identifier: string, password: string) {
+  const response = await apiFetch<LoginResponse>("/auth/login", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ identifier, password }),
+    body: JSON.stringify({
+      identifier: normalizeIdentifier(identifier),
+      password,
+    }),
   });
 
   setLastLoginMethod("EMAIL", response.user.email);
@@ -271,12 +247,13 @@ export async function registerWithEmail(input: {
   email: string;
   password: string;
 }) {
-  const response = await fetchJson<RegisterResponse>(`${API_URL}/auth/register`, {
+  const response = await apiFetch<RegisterResponse>("/auth/register", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      fullName: input.fullName.trim(),
+      email: normalizeEmail(input.email),
+      password: input.password,
+    }),
   });
 
   setLastLoginMethod("EMAIL", response.user.email);
@@ -284,66 +261,56 @@ export async function registerWithEmail(input: {
 }
 
 export async function verifyEmailCode(email: string, code: string) {
-  return fetchJson<VerifyEmailResponse>(`${API_URL}/auth/verify-email`, {
+  return apiFetch<VerifyEmailResponse>("/auth/verify-email", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, code }),
+    body: JSON.stringify({
+      email: normalizeEmail(email),
+      code: code.trim(),
+    }),
   });
 }
 
 export async function resendVerificationCode(email: string) {
-  return fetchJson<ResendVerificationResponse>(
-    `${API_URL}/auth/resend-verification-code`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
-    }
-  );
+  return apiFetch<ResendVerificationResponse>("/auth/resend-verification-code", {
+    method: "POST",
+    body: JSON.stringify({
+      email: normalizeEmail(email),
+    }),
+  });
 }
 
 export async function requestPasswordReset(email: string) {
-  return fetchJson<ForgotPasswordResponse>(`${API_URL}/auth/forgot-password`, {
+  return apiFetch<ForgotPasswordResponse>("/auth/forgot-password", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({
+      email: normalizeEmail(email),
+    }),
   });
 }
 
 export async function resetPassword(token: string, password: string) {
-  return fetchJson<ResetPasswordResponse>(`${API_URL}/auth/reset-password`, {
+  return apiFetch<ResetPasswordResponse>("/auth/reset-password", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ token, password }),
+    body: JSON.stringify({
+      token: token.trim(),
+      password,
+    }),
   });
 }
 
 export async function logoutSession() {
-  const response = await fetchJson<LogoutResponse>(`${API_URL}/auth/logout`, {
+  const response = await apiFetch<LogoutResponse>("/auth/logout", {
     method: "POST",
   });
 
   clearLastLoginHint();
+  clearAuthFlowState();
   return response;
 }
 
 export async function getMe(): Promise<MeResponse | null> {
   try {
-    const res = await fetch(`${API_URL}/auth/me`, {
-      credentials: "include",
-    });
-
-    if (!res.ok) return null;
-
-    return (await res.json()) as MeResponse;
+    return await apiFetch<MeResponse>("/auth/me");
   } catch {
     return null;
   }
@@ -353,37 +320,23 @@ export async function finalizeLoginSession() {
   const me = await getMe();
 
   if (me?.email) {
-    const preferred =
-      me.preferredLoginMethod === "GOOGLE"
-        ? "GOOGLE"
-        : me.preferredLoginMethod === "APPLE"
-        ? "APPLE"
-        : "EMAIL";
-
+    const preferred = normalizeProvider(me.preferredLoginMethod) ?? "EMAIL";
     setLastLoginMethod(preferred, me.email);
   }
 
   return { me };
 }
 
-/**
- * Social auth entry points.
- * These should point to backend redirect endpoints once you wire OAuth server-side.
- *
- * Expected backend examples:
- *   GET /auth/google
- *   GET /auth/apple
- */
 export function continueWithGoogle() {
   if (!isBrowser()) return;
   setLastLoginMethod("GOOGLE");
-  window.location.href = `${API_URL}/auth/google`;
+  window.location.assign(`${API_URL}/auth/google`);
 }
 
 export function continueWithApple() {
   if (!isBrowser()) return;
   setLastLoginMethod("APPLE");
-  window.location.href = `${API_URL}/auth/apple`;
+  window.location.assign(`${API_URL}/auth/apple`);
 }
 
 export function getSuggestedLoginMethod() {

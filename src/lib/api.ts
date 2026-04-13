@@ -12,13 +12,42 @@ function getCookie(name: string) {
   return decodeURIComponent(found.split("=")[1] || "");
 }
 
-async function tryRefresh() {
-  const res = await fetch(`${API_URL}/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
+async function parseApiError(res: Response): Promise<never> {
+  const text = await res.text();
 
-  return res.ok;
+  if (!text) throw new Error("Request failed");
+
+  try {
+    const parsed = JSON.parse(text);
+    const message = Array.isArray(parsed?.message)
+      ? parsed.message[0]
+      : parsed?.message || text;
+
+    throw new Error(message);
+  } catch {
+    throw new Error(text || "Request failed");
+  }
+}
+
+/* 🔒 GLOBAL REFRESH LOCK */
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      return res.ok;
+    })();
+
+    const result = await refreshPromise;
+    refreshPromise = null;
+    return result;
+  }
+
+  return refreshPromise;
 }
 
 export async function apiFetch<T>(
@@ -30,37 +59,59 @@ export async function apiFetch<T>(
   const csrfToken = getCookie("skuully_csrf_token");
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && csrfToken
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(method !== "GET" &&
+    method !== "HEAD" &&
+    method !== "OPTIONS" &&
+    csrfToken
       ? { "X-CSRF-Token": csrfToken }
       : {}),
     ...(options.headers ?? {}),
   };
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  const controller = new AbortController();
+  const timeout =
+    typeof window !== "undefined"
+      ? window.setTimeout(() => controller.abort(), 20000)
+      : null;
 
-  if (res.status === 401 && !hasRetried) {
-    const refreshed = await tryRefresh();
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      credentials: "include",
+      signal: controller.signal,
+    });
 
-    if (refreshed) {
-      return apiFetch<T>(path, options, true);
+    if (res.status === 401 && !hasRetried) {
+      const refreshed = await refreshSession();
+
+      if (refreshed) {
+        return apiFetch<T>(path, options, true);
+      }
+
+      throw new Error("SESSION_EXPIRED");
     }
 
-    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-      window.location.href = "/login";
+    if (!res.ok) {
+      await parseApiError(res);
     }
 
-    throw new Error("Session expired");
-  }
+    if (res.status === 204) {
+      return {} as T;
+    }
 
-  if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "API request failed");
-  }
+    return text ? (JSON.parse(text) as T) : ({} as T);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("The request took too long. Please try again.");
+    }
 
-  return res.json();
+    throw error;
+  } finally {
+    if (timeout) {
+      window.clearTimeout(timeout);
+    }
+  }
 }

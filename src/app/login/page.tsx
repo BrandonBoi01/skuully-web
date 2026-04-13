@@ -21,14 +21,36 @@ import {
   setPendingVerificationEmail,
 } from "@/lib/auth";
 
+function normalizeIdentifier(value: string) {
+  return value.trim();
+}
+
 function mapLoginError(message: string) {
   const text = message.toLowerCase();
 
-  if (text.includes("invalid credentials")) return "Incorrect email, phone, Skuully ID, or password.";
-  if (text.includes("failed to fetch")) return "Couldn’t reach the server. Try again.";
-  if (text.includes("request took too long")) return "The request took too long. Try again.";
-  if (text.includes("google")) return "This account may use Google sign-in.";
-  if (text.includes("apple")) return "This account may use Apple sign-in.";
+  if (text.includes("invalid credentials")) {
+    return "Incorrect email, phone, Skuully ID, or password.";
+  }
+
+  if (text.includes("session expired")) {
+    return "Your session expired. Please sign in again.";
+  }
+
+  if (text.includes("failed to fetch")) {
+    return "Couldn’t reach the server. Try again.";
+  }
+
+  if (text.includes("request took too long")) {
+    return "The request took too long. Try again.";
+  }
+
+  if (text.includes("google")) {
+    return "This account may use Google sign-in.";
+  }
+
+  if (text.includes("apple")) {
+    return "This account may use Apple sign-in.";
+  }
 
   return "Unable to sign in right now.";
 }
@@ -57,7 +79,9 @@ function SocialButton({
 export default function LoginPage() {
   const router = useRouter();
 
-  const [identifier, setIdentifier] = useState(getPendingVerificationEmail() ?? "");
+  const [identifier, setIdentifier] = useState(
+    () => getPendingVerificationEmail() ?? "",
+  );
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showForgot, setShowForgot] = useState(false);
@@ -68,7 +92,9 @@ export default function LoginPage() {
   const suggestedLabel = useMemo(() => {
     if (suggested.method === "GOOGLE") return "Continue with Google";
     if (suggested.method === "APPLE") return "Continue with Apple";
-    if (suggested.method === "EMAIL" && suggested.email) return `Continue as ${suggested.email}`;
+    if (suggested.method === "EMAIL" && suggested.email) {
+      return `Continue as ${suggested.email}`;
+    }
     return null;
   }, [suggested]);
 
@@ -85,7 +111,7 @@ export default function LoginPage() {
     setIsBusy(true);
 
     try {
-      const normalizedIdentifier = identifier.trim().toLowerCase();
+      const normalizedIdentifier = normalizeIdentifier(identifier);
       const login = await loginWithIdentifier(normalizedIdentifier, password);
 
       if (!login.emailVerified || login.requiresEmailVerification) {
@@ -99,22 +125,21 @@ export default function LoginPage() {
         return;
       }
 
-      const finalSession = await finalizeLoginSession();
-      const me = finalSession.me;
+      const { me } = await finalizeLoginSession();
 
       if (!me) {
         setError("Signed in, but your workspace could not be loaded.");
         return;
       }
 
-      if (!me.emailVerified) {
+      if (!me.emailVerified && me.email) {
         setPendingVerificationEmail(me.email);
         markVerificationCodeSent();
         router.replace("/verify-email");
         return;
       }
 
-      if (me.context?.schoolId && me.context?.programId) {
+      if (me.context?.schoolId) {
         router.replace("/dashboard/control-center");
         return;
       }
@@ -122,7 +147,9 @@ export default function LoginPage() {
       router.replace("/onboarding");
     } catch (err) {
       setError(
-        err instanceof Error ? mapLoginError(err.message) : "Unable to sign in right now."
+        err instanceof Error
+          ? mapLoginError(err.message)
+          : "Unable to sign in right now.",
       );
       setShowForgot(true);
     } finally {
@@ -131,22 +158,31 @@ export default function LoginPage() {
   }
 
   function handleForgotPassword() {
-    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const normalizedIdentifier = normalizeIdentifier(identifier);
 
     if (normalizedIdentifier.includes("@")) {
-      setPendingResetEmail(normalizedIdentifier);
+      setPendingResetEmail(normalizedIdentifier.toLowerCase());
     }
 
     router.push(
       normalizedIdentifier.includes("@")
-        ? `/forgot-password?email=${encodeURIComponent(normalizedIdentifier)}`
-        : "/forgot-password"
+        ? `/forgot-password?email=${encodeURIComponent(
+            normalizedIdentifier.toLowerCase(),
+          )}`
+        : "/forgot-password",
     );
   }
 
   function handleSuggestedContinue() {
-    if (suggested.method === "GOOGLE") return continueWithGoogle();
-    if (suggested.method === "APPLE") return continueWithApple();
+    if (suggested.method === "GOOGLE") {
+      continueWithGoogle();
+      return;
+    }
+
+    if (suggested.method === "APPLE") {
+      continueWithApple();
+      return;
+    }
 
     if (suggested.method === "EMAIL" && suggested.email) {
       setIdentifier(suggested.email);
@@ -167,8 +203,8 @@ export default function LoginPage() {
         }
         panelDescription={
           <>
-            Skuully brings identity, school operations, learning, and academic life
-            into one calm premium system.
+            Skuully brings identity, school operations, learning, and academic
+            life into one calm premium system.
           </>
         }
         panelTags={["Calm workflows", "Global-ready", "Built for modern schools"]}
@@ -201,7 +237,6 @@ export default function LoginPage() {
               icon={<GoogleIcon className="h-5 w-5" />}
               label="Google"
             />
-
             <SocialButton
               onClick={continueWithApple}
               icon={<AppleIcon className="h-5 w-5" />}
@@ -282,7 +317,12 @@ export default function LoginPage() {
         </div>
       </AuthShell>
 
-      <FloatingNotice show={!!notice} message={notice} tone="success" position="bottom-left" />
+      <FloatingNotice
+        show={!!notice}
+        message={notice}
+        tone="success"
+        position="bottom-left"
+      />
     </>
   );
 }

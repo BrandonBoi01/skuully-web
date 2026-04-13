@@ -18,7 +18,7 @@ export type AccountIntent =
   | "explorer"
   | "unsure";
 
-type OnboardingState = {
+export type OnboardingState = {
   route: OnboardingRoute | null;
   buildInstitutionType: BuildInstitutionType | null;
   accountIntent: AccountIntent | null;
@@ -36,6 +36,34 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
+function isRoute(value: unknown): value is OnboardingRoute {
+  return value === "build_institution" || value === "personal_account";
+}
+
+function isInstitutionType(value: unknown): value is BuildInstitutionType {
+  return (
+    value === "school" ||
+    value === "college" ||
+    value === "university" ||
+    value === "polytechnic" ||
+    value === "vocational" ||
+    value === "academy" ||
+    value === "training_center"
+  );
+}
+
+function isAccountIntent(value: unknown): value is AccountIntent {
+  return (
+    value === "founder" ||
+    value === "staff" ||
+    value === "parent" ||
+    value === "student" ||
+    value === "professional" ||
+    value === "explorer" ||
+    value === "unsure"
+  );
+}
+
 export function readOnboardingState(): OnboardingState {
   if (!isBrowser()) return DEFAULT_STATE;
 
@@ -46,9 +74,13 @@ export function readOnboardingState(): OnboardingState {
     const parsed = JSON.parse(raw) as Partial<OnboardingState>;
 
     return {
-      route: parsed.route ?? null,
-      buildInstitutionType: parsed.buildInstitutionType ?? null,
-      accountIntent: parsed.accountIntent ?? null,
+      route: isRoute(parsed.route) ? parsed.route : null,
+      buildInstitutionType: isInstitutionType(parsed.buildInstitutionType)
+        ? parsed.buildInstitutionType
+        : null,
+      accountIntent: isAccountIntent(parsed.accountIntent)
+        ? parsed.accountIntent
+        : null,
     };
   } catch {
     return DEFAULT_STATE;

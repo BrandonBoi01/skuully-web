@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+
 import { AuthShell } from "@/components/auth/auth-shell";
 import {
   getPendingResetEmail,
@@ -39,8 +40,9 @@ function ForgotPasswordContent() {
     setIsBusy(true);
 
     try {
-      setPendingResetEmail(email.trim());
-      const result = await requestPasswordReset(email.trim());
+      const normalizedEmail = email.trim().toLowerCase();
+      setPendingResetEmail(normalizedEmail);
+      const result = await requestPasswordReset(normalizedEmail);
       setMessage(result.message);
     } catch {
       setError("We couldn’t send the reset link.");

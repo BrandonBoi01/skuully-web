@@ -20,15 +20,41 @@ import {
 function mapRegisterError(message: string) {
   const text = message.toLowerCase();
 
-  if (text.includes("email already in use")) return "That email is already in use.";
-  if (text.includes("full name is required")) return "Enter your full name.";
-  if (text.includes("invalid email")) return "Enter a valid email address.";
-  if (text.includes("uppercase")) return "Password needs an uppercase letter.";
-  if (text.includes("lowercase")) return "Password needs a lowercase letter.";
-  if (text.includes("number")) return "Password needs a number.";
-  if (text.includes("special character")) return "Password needs a special character.";
-  if (text.includes("request took too long")) return "The server took too long. Try again.";
-  if (text.includes("failed to fetch")) return "Could not reach the server.";
+  if (text.includes("email already in use")) {
+    return "That email is already in use.";
+  }
+
+  if (text.includes("full name is required")) {
+    return "Enter your full name.";
+  }
+
+  if (text.includes("invalid email")) {
+    return "Enter a valid email address.";
+  }
+
+  if (text.includes("uppercase")) {
+    return "Password needs an uppercase letter.";
+  }
+
+  if (text.includes("lowercase")) {
+    return "Password needs a lowercase letter.";
+  }
+
+  if (text.includes("number")) {
+    return "Password needs a number.";
+  }
+
+  if (text.includes("special character")) {
+    return "Password needs a special character.";
+  }
+
+  if (text.includes("request took too long")) {
+    return "The server took too long. Try again.";
+  }
+
+  if (text.includes("failed to fetch")) {
+    return "Could not reach the server.";
+  }
 
   return "Unable to create your account.";
 }
@@ -88,7 +114,7 @@ export default function RegisterPage() {
       number: /\d/.test(password),
       special: /[^A-Za-z0-9]/.test(password),
     }),
-    [password]
+    [password],
   );
 
   const passwordIsStrong =
@@ -143,7 +169,7 @@ export default function RegisterPage() {
       setError(
         err instanceof Error
           ? mapRegisterError(err.message)
-          : "Unable to create your account."
+          : "Unable to create your account.",
       );
     } finally {
       setIsBusy(false);
@@ -163,8 +189,8 @@ export default function RegisterPage() {
         }
         panelDescription={
           <>
-            Create your Skuully identity once and move into onboarding, learning,
-            operations, and school life with a single foundation.
+            Create your Skuully identity once and move into onboarding,
+            learning, operations, and school life with a single foundation.
           </>
         }
         panelTags={["Secure identity", "Premium onboarding", "Built for modern schools"]}
@@ -187,7 +213,6 @@ export default function RegisterPage() {
               icon={<GoogleIcon className="h-5 w-5" />}
               label="Google"
             />
-
             <SocialButton
               onClick={continueWithApple}
               icon={<AppleIcon className="h-5 w-5" />}
@@ -272,7 +297,12 @@ export default function RegisterPage() {
         </div>
       </AuthShell>
 
-      <FloatingNotice show={!!notice} message={notice} tone="success" position="bottom-left" />
+      <FloatingNotice
+        show={!!notice}
+        message={notice}
+        tone="success"
+        position="bottom-left"
+      />
     </>
   );
 }

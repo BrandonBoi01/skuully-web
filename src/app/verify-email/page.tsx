@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { AuthShell } from "@/components/auth/auth-shell";
 import { FloatingNotice } from "@/components/ui/floating-notice";
 import {
@@ -39,9 +40,10 @@ function formatTime(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
+
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
     2,
-    "0"
+    "0",
   )}`;
 }
 
@@ -108,7 +110,7 @@ export default function VerifyEmailPage() {
       setError(
         err instanceof Error
           ? mapVerifyError(err.message)
-          : "Unable to verify email."
+          : "Unable to verify email.",
       );
     } finally {
       setIsVerifying(false);

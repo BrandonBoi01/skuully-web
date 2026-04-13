@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, Suspense, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasswordField } from "@/components/auth/password-field";
 import { FloatingNotice } from "@/components/ui/floating-notice";
-import { resetPassword } from "@/lib/auth";
+import { clearPendingResetEmail, resetPassword } from "@/lib/auth";
 
 function PasswordRule({
   ok,
@@ -40,6 +41,12 @@ function ResetPasswordContent() {
   const [notice, setNotice] = useState("");
   const [isBusy, setIsBusy] = useState(false);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   const passwordChecks = useMemo(
     () => ({
       min: password.length >= 8,
@@ -47,7 +54,7 @@ function ResetPasswordContent() {
       lower: /[a-z]/.test(password),
       number: /\d/.test(password),
     }),
-    [password]
+    [password],
   );
 
   const passwordIsStrong =
@@ -82,8 +89,9 @@ function ResetPasswordContent() {
 
     try {
       const result = await resetPassword(token, password);
+      clearPendingResetEmail();
       setNotice(result.message);
-      setTimeout(() => {
+      window.setTimeout(() => {
         router.replace("/login");
       }, 1200);
     } catch {
