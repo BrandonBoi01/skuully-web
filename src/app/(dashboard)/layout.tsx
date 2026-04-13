@@ -13,7 +13,7 @@ import { AmbientBackground } from "@/components/layout/ambient-background";
 import { LiveActivityTicker } from "@/components/dashboard/live-activity-ticker";
 import { PageSpotlight } from "@/components/effects/page-spotlight";
 import { AdminCommandBar } from "@/components/dashboard/admin-command-bar";
-import { RouteGuard } from "@/components/auth/route-guard";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 const navItems = [
   { label: "Control Center", icon: LayoutDashboard, active: true },
@@ -31,11 +31,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RouteGuard
-      mode="dashboard-only"
-      loadingTitle="Opening your workspace..."
-      loadingSubtitle="Checking access, verification, and workspace context."
-    >
+    <AuthGuard requireVerifiedEmail requireInstitutionContext>
       <div className="h-screen overflow-hidden text-white">
         <AmbientBackground />
         <PageSpotlight />
@@ -98,6 +94,6 @@ export default function DashboardLayout({
           </div>
         </div>
       </div>
-    </RouteGuard>
+    </AuthGuard>
   );
 }

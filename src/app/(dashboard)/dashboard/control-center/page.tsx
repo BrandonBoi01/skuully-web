@@ -16,14 +16,12 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { GlassCard } from "@/components/glass/glass-card";
 import { useDashboardLive } from "@/hooks/use-dashboard-live";
 import { apiFetch } from "@/lib/api";
-import { getMe } from "@/lib/auth";
 import {
   ControlCenterHeatMap,
   type HeatMapClass,
 } from "@/components/dashboard/control-center-heat-map";
 import { ClassDrilldownPanel } from "@/components/dashboard/class-drilldown-panel";
-
-/* ---------------- TYPES (unchanged) ---------------- */
+import { useAuthSession } from "@/hooks/use-auth-session";
 
 type AttendanceCounts = {
   PRESENT: number;
@@ -32,11 +30,110 @@ type AttendanceCounts = {
   EXCUSED: number;
 };
 
-type ControlCenterResponse = { /* unchanged */ };
-type AuthMeResponse = { /* unchanged */ };
-type HeatMapResponse = { /* unchanged */ };
+type ControlCenterResponse = {
+  scope: string;
+  schoolId: string;
+  program: {
+    id: string;
+    name: string;
+  };
+  date: string;
+  totals: {
+    activeStudents: number;
+    activeStaff: number;
+    trackedStudents: number;
+    trackedStaff: number;
+    studentOnCampus: number;
+    staffOnCampus: number;
+    lockedRows: number;
+  };
+  operations: {
+    expectedClasses: number;
+    classesMarkedToday: number;
+    classesPendingToday: number;
+    openSessions: number;
+  };
+  students: {
+    counts: AttendanceCounts;
+    attendanceRate: number;
+    untracked: number;
+  };
+  staff: {
+    counts: AttendanceCounts;
+    attendanceRate: number;
+    untracked: number;
+  };
+  sessions: {
+    total: number;
+    open: number;
+    closed: number;
+    openItems: Array<{
+      id: string;
+      classId: string;
+      className: string | null;
+      periodName: string | null;
+      createdAt: string;
+    }>;
+    classesWithoutSessions: Array<{
+      id: string;
+      name: string;
+      grade: string | null;
+    }>;
+  };
+  risks: {
+    count: number;
+    top: Array<{
+      student: {
+        id: string;
+        fullName: string;
+        admissionNo: string | null;
+        class: {
+          id: string;
+          name: string;
+        } | null;
+      };
+      totalTracked: number;
+      counts: AttendanceCounts;
+      attendanceRate: number;
+      overrideCount: number;
+      riskScore: number;
+      reasons: string[];
+    }>;
+  };
+  recentEvents: Array<{
+    id: string;
+    personType: string;
+    personId: string;
+    eventType: string;
+    source: string;
+    occurredAt: string;
+    deviceId: string | null;
+  }>;
+};
 
-/* ---------------- HELPERS ---------------- */
+type HeatMapResponse = {
+  scope: string;
+  schoolId: string;
+  programId: string;
+  date: string;
+  program: {
+    id: string;
+    name: string;
+    template?: {
+      id: string;
+      code: string;
+      name: string;
+    } | null;
+  };
+  summary: {
+    totalClasses: number;
+    healthy: number;
+    watch: number;
+    risk: number;
+    pending: number;
+  };
+  classes: HeatMapClass[];
+};
 
 function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
@@ -86,10 +183,9 @@ function StatusPill({ label }: { label: string }) {
   );
 }
 
-/* ---------------- PAGE ---------------- */
-
 export default function ControlCenterPage() {
   const queryClient = useQueryClient();
+  const { data: me } = useAuthSession();
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(new Date());
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
@@ -100,8 +196,6 @@ export default function ControlCenterPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  /* ---------------- DATA ---------------- */
-
   const {
     data,
     isLoading,
@@ -110,23 +204,18 @@ export default function ControlCenterPage() {
     isFetching,
   } = useQuery<ControlCenterResponse>({
     queryKey: ["control-center"],
-    queryFn: () => apiFetch("/dashboard/control-center"),
+    queryFn: () => apiFetch<ControlCenterResponse>("/dashboard/control-center"),
     retry: false,
+    enabled: !!me?.context?.schoolId,
   });
 
   const { data: heatMap, isLoading: heatMapLoading } = useQuery<HeatMapResponse>({
     queryKey: ["control-center-heat-map"],
-    queryFn: () => apiFetch("/dashboard/control-center/heat-map"),
+    queryFn: () =>
+      apiFetch<HeatMapResponse>("/dashboard/control-center/heat-map"),
     retry: false,
+    enabled: !!me?.context?.schoolId,
   });
-
-  const { data: me } = useQuery<AuthMeResponse | null>({
-    queryKey: ["auth-me"],
-    queryFn: () => getMe(),
-    retry: false,
-  });
-
-  /* ---------------- LIVE REFRESH ---------------- */
 
   useDashboardLive({
     schoolId: mounted ? data?.schoolId : undefined,
@@ -134,11 +223,8 @@ export default function ControlCenterPage() {
     onRefresh: () => {
       queryClient.invalidateQueries({ queryKey: ["control-center"] });
       queryClient.invalidateQueries({ queryKey: ["control-center-heat-map"] });
-      queryClient.invalidateQueries({ queryKey: ["auth-me"] });
     },
   });
-
-  /* ---------------- DERIVED ---------------- */
 
   useEffect(() => {
     if (!selectedClassId && heatMap?.classes?.length) {
@@ -190,8 +276,6 @@ export default function ControlCenterPage() {
   const visibleRecentEvents = view.recentEvents.slice(0, 8);
   const visibleRiskStudents = view.riskStudents.slice(0, 8);
   const visiblePendingClasses = view.pendingClasses.slice(0, 8);
-
-  /* ---------------- UI ---------------- */
 
   return (
     <div className="space-y-6 pb-6">
