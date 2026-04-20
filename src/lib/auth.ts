@@ -36,31 +36,47 @@ export type RegisterResponse = {
 export type MeResponse = {
   id: string;
   fullName: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  email: string;
-  phone?: string | null;
-  skuullyId?: string | null;
-  emailVerified?: boolean;
-  phoneVerified?: boolean;
-  emailVerifiedAt?: string | null;
-  phoneVerifiedAt?: string | null;
-  preferredLoginMethod?: string | null;
-  memberships?: Array<{
-    role: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  skuullyId: string;
+
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  emailVerifiedAt: string | null;
+  phoneVerifiedAt: string | null;
+
+  preferredLoginMethod: string | null;
+  providers: ("GOOGLE" | "APPLE")[];
+
+  memberships: Array<{
+    id: string;
+    membershipType: string;
     status: string;
+    isPrimary: boolean;
     createdAt: string;
-    school: {
+
+    institution: {
       id: string;
       name: string;
-      country?: string | null;
+      institutionType: string;
+      institutionCategory: string | null;
+      countryCode: string | null;
     };
+
+    roles: Array<{
+      id: string;
+      key: string;
+      name: string;
+      scope: string;
+    }>;
   }>;
-  context?: {
-    schoolId?: string | null;
-    programId?: string | null;
-    role?: string | null;
-    membershipId?: string | null;
+
+  context: {
+    institutionId: string | null;
+    membershipId: string | null;
+    membershipType: string | null;
   };
 };
 

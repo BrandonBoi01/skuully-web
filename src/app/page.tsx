@@ -27,7 +27,7 @@ export default function HomePage() {
           return;
         }
 
-        if (me.context?.schoolId && me.context?.programId) {
+        if (me.context?.institutionId) {
           router.replace("/dashboard/control-center");
           return;
         }

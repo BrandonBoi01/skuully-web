@@ -18,10 +18,9 @@ export type HeatMapClass = {
   status: "healthy" | "watch" | "risk" | "pending";
 };
 
-type HeatMapResponse = {
+export type HeatMapResponse = {
   scope: string;
-  schoolId: string;
-  programId: string;
+  institutionId: string;
   date: string;
   program: {
     id: string;
@@ -144,10 +143,7 @@ export function ControlCenterHeatMap({
     return (
       <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="glass rounded-3xl p-5"
-          >
+          <div key={i} className="glass rounded-3xl p-5">
             <div className="h-5 w-28 rounded bg-[var(--muted)]" />
             <div className="mt-2 h-4 w-20 rounded bg-[var(--muted)]" />
             <div className="mt-6 h-10 w-24 rounded bg-[var(--muted)]" />
@@ -193,8 +189,8 @@ export function ControlCenterHeatMap({
               type="button"
               onClick={() => onSelectClass?.(item)}
               className={cn(
-                "spotlight-card relative rounded-3xl border p-5 text-left transition-all duration-200",
-                "hover-lift overflow-hidden",
+                "spotlight-card relative overflow-hidden rounded-3xl border p-5 text-left transition-all duration-200",
+                "hover-lift",
                 toneClass(item.status),
                 selected &&
                   "ring-2 ring-[rgba(var(--skuully-blue),0.28)] shadow-[var(--elev-shadow-md)]"

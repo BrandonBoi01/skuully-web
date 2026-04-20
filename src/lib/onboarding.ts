@@ -1,302 +1,374 @@
+"use client";
+
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import type {
-  AccountIntent,
-  BuildInstitutionType,
-  OnboardingRoute,
-} from "@/lib/onboarding-flow";
+  CountryItem,
+  CreateInstitutionOnboardingInput,
+  GeoCityItem,
+  GeoListResponse,
+  GeoSubdivisionItem,
+  GeoTimezoneItem,
+  OnboardingStatusResponse,
+  SetProfileInput,
+  StartOnboardingInput,
+} from "@/lib/onboarding-types";
 
-function mapRouteToApi(route: OnboardingRoute) {
-  return route === "build_institution"
-    ? "BUILD_INSTITUTION"
-    : "PERSONAL_ACCOUNT";
+export const ONBOARDING_QUERY_KEY = ["onboarding", "me"] as const;
+
+/* ---------------------------------- */
+/* API CALLS                          */
+/* ---------------------------------- */
+
+export async function getOnboardingStatus() {
+  return apiFetch<OnboardingStatusResponse>("/onboarding/me");
 }
 
-function mapInstitutionTypeToApi(type: BuildInstitutionType) {
-  switch (type) {
-    case "school":
-      return "SCHOOL";
-    case "college":
-      return "COLLEGE";
-    case "university":
-      return "UNIVERSITY";
-    case "polytechnic":
-      return "POLYTECHNIC";
-    case "vocational":
-      return "VOCATIONAL";
-    case "academy":
-      return "ACADEMY";
-    case "training_center":
-    default:
-      return "TRAINING_CENTER";
+export async function startOnboarding(input: StartOnboardingInput) {
+  return apiFetch<{
+    id: string;
+    userId: string;
+    route: string;
+    accountIntent: string;
+    currentStep: string;
+  }>("/onboarding/start", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function savePersonalProfile(input: SetProfileInput) {
+  return apiFetch<{
+    message: string;
+    onboarding: {
+      id: string;
+      userId: string;
+      route: string;
+      currentStep: string;
+      nationalityCodeDraft: string | null;
+      residenceCountryCodeDraft: string | null;
+      headlineDraft: string | null;
+    };
+  }>("/onboarding/profile", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function createInstitutionOnboarding(
+  input: CreateInstitutionOnboardingInput
+) {
+  return apiFetch<{
+    message: string;
+    institution: unknown;
+    ownerMembershipId: string;
+  }>("/onboarding/institution", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function requestInstitutionJoin(input: {
+  institutionId: string;
+  requestType: "STUDENT" | "STAFF" | "PARENT" | "GUARDIAN" | "PARTNER";
+  note?: string;
+  referenceNumber?: string;
+  admissionNo?: string;
+  staffNo?: string;
+}) {
+  return apiFetch<{
+    message: string;
+    joinRequest: {
+      id: string;
+      requestType: string;
+      status: string;
+      createdAt: string;
+      institution: {
+        id: string;
+        name: string;
+        slug: string;
+      };
+    };
+  }>("/onboarding/join", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getCountries(search?: string) {
+  const params = new URLSearchParams();
+
+  if (search?.trim()) {
+    params.set("search", search.trim());
+  }
+
+  const query = params.toString();
+
+  return apiFetch<GeoListResponse<CountryItem>>(
+    `/geo/countries${query ? `?${query}` : ""}`
+  );
+}
+
+export async function getPhoneCountries(search?: string) {
+  const params = new URLSearchParams();
+
+  if (search?.trim()) {
+    params.set("search", search.trim());
+  }
+
+  const query = params.toString();
+
+  return apiFetch<GeoListResponse<CountryItem>>(
+    `/geo/phone-countries${query ? `?${query}` : ""}`
+  );
+}
+
+export async function getCountrySubdivisions(
+  countryCode: string,
+  search?: string
+) {
+  const params = new URLSearchParams();
+
+  if (search?.trim()) {
+    params.set("search", search.trim());
+  }
+
+  const query = params.toString();
+
+  return apiFetch<GeoListResponse<GeoSubdivisionItem>>(
+    `/geo/countries/${encodeURIComponent(countryCode)}/subdivisions${
+      query ? `?${query}` : ""
+    }`
+  );
+}
+
+export async function getCountryCities(
+  countryCode: string,
+  input?: {
+    subdivisionCode?: string;
+    search?: string;
+  }
+) {
+  const params = new URLSearchParams();
+
+  if (input?.subdivisionCode?.trim()) {
+    params.set("subdivisionCode", input.subdivisionCode.trim());
+  }
+
+  if (input?.search?.trim()) {
+    params.set("search", input.search.trim());
+  }
+
+  const query = params.toString();
+
+  return apiFetch<GeoListResponse<GeoCityItem>>(
+    `/geo/countries/${encodeURIComponent(countryCode)}/cities${
+      query ? `?${query}` : ""
+    }`
+  );
+}
+
+export async function getCountryTimezones(countryCode: string) {
+  return apiFetch<GeoListResponse<GeoTimezoneItem>>(
+    `/geo/countries/${encodeURIComponent(countryCode)}/timezones`
+  );
+}
+
+/* ---------------------------------- */
+/* QUERY HELPERS                      */
+/* ---------------------------------- */
+
+export async function fetchOnboardingStatus(): Promise<OnboardingStatusResponse | null> {
+  try {
+    return await getOnboardingStatus();
+  } catch {
+    return null;
   }
 }
 
-function mapAccountIntentToApi(intent: AccountIntent) {
-  return intent.toUpperCase();
-}
-
-export type AcademicOption = {
-  label: string;
-  code?: string;
-  category?: string;
-  recommended?: boolean;
-};
-
-export type GenderAdmissionPolicy = "BOYS_ONLY" | "GIRLS_ONLY" | "MIXED";
-
-export type LearningMode =
-  | "DAY"
-  | "BOARDING"
-  | "IN_PERSON"
-  | "ONLINE"
-  | "HYBRID";
-
-export type GetMyOnboardingResponse = {
-  route: string | null;
-  accountIntent?: string | null;
-  currentStep: string | null;
-  completedAt: string | null;
-  draft: {
-    institutionType?: string | null;
-    institutionName?: string | null;
-    country?: string | null;
-    countryCode?: string | null;
-    skuullyId?: string | null;
-    personalHeadline?: string | null;
-    dateOfBirth?: string | null;
-    academicLabel?: string | null;
-    academicItems?: string[];
-    academicSetLater?: boolean;
-    learningModes?: string[];
-    ownership?: string | null;
-    levelType?: string | null;
-    genderAdmissionPolicy?: string | null;
-    phoneCountryCode?: string | null;
-    phoneDialCode?: string | null;
-    phoneNational?: string | null;
-    phoneE164?: string | null;
-    phoneSetLater?: boolean;
-  } | null;
-};
-
-export type SetOnboardingRouteResponse = {
-  message: string;
-  route: string;
-  currentStep: string;
-};
-
-export type GenericStepResponse = {
-  message: string;
-  currentStep?: string;
-};
-
-export type BuildAcademicOptionsResponse = {
-  label: string;
-  description: string;
-  options: AcademicOption[];
-};
-
-export type DetailOptionsResponse = {
-  learningModes: string[];
-  ownerships: string[];
-  levelTypes: string[];
-  genderAdmissionPolicies: Array<{
-    label: string;
-    value: GenderAdmissionPolicy;
-  }>;
-};
-
-export type BuildReviewResponse = {
-  institutionType?: string | null;
-  institutionName?: string | null;
-  country?: string | null;
-  countryCode?: string | null;
-  academicLabel?: string | null;
-  academicItems?: string[];
-  academicSetLater?: boolean;
-  learningModes?: string[];
-  ownership?: string | null;
-  levelType?: string | null;
-  genderAdmissionPolicy?: string | null;
-  phone?: string | null;
-  phoneSetLater?: boolean;
-};
-
-export type CompleteBuildInstitutionResponse = {
-  message: string;
-  token?: string;
-  school?: unknown;
-  membership?: unknown;
-  active?: unknown;
-};
-
-export type CompletePersonalAccountResponse = {
-  message: string;
-  active?: unknown;
-};
-
-export type SendPhoneCodeResponse = {
-  message: string;
-  expiresInSeconds?: number;
-};
-
-export type VerifyPhoneCodeResponse = {
-  message: string;
-  verified: boolean;
-  phone?: string;
-  phoneVerified?: boolean;
-};
-
-export async function setOnboardingRoute(route: OnboardingRoute) {
-  return apiFetch<SetOnboardingRouteResponse>("/onboarding/route", {
-    method: "POST",
-    body: JSON.stringify({
-      route: mapRouteToApi(route),
-    }),
+export function useOnboardingQuery() {
+  return useQuery<OnboardingStatusResponse | null>({
+    queryKey: ONBOARDING_QUERY_KEY,
+    queryFn: fetchOnboardingStatus,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    refetchOnMount: false,
   });
 }
 
-export async function getMyOnboarding() {
-  return apiFetch<GetMyOnboardingResponse>("/onboarding/me");
+export function useOnboarding() {
+  const query = useOnboardingQuery();
+
+  return {
+    data: query.data ?? null,
+    onboarding: query.data?.onboarding ?? null,
+    memberships: query.data?.memberships ?? [],
+    completed: query.data?.completed ?? false,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
-/* ---------------- BUILD INSTITUTION ---------------- */
+/* ---------------------------------- */
+/* CACHE HELPERS                      */
+/* ---------------------------------- */
 
-export async function saveBuildIdentity(input: {
-  institutionType: string;
-  institutionName: string;
-  country: string;
-  countryCode: string;
-}) {
-  return apiFetch<GenericStepResponse>("/onboarding/build/identity", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-}
-
-export async function getAcademicOptions(
-  institutionType: string,
-  countryCode: string
+export function setOnboardingCache(
+  queryClient: QueryClient,
+  value: OnboardingStatusResponse | null
 ) {
-  const params = new URLSearchParams({ institutionType, countryCode });
-
-  return apiFetch<BuildAcademicOptionsResponse>(
-    `/onboarding/build/academic-options?${params.toString()}`
-  );
+  queryClient.setQueryData(ONBOARDING_QUERY_KEY, value);
 }
 
-export async function saveBuildAcademic(input: {
-  label?: string;
-  selectedItems: string[];
-  selectedCodes?: string[];
-  setUpLater: boolean;
-}) {
-  return apiFetch<GenericStepResponse>("/onboarding/build/academic", {
-    method: "POST",
-    body: JSON.stringify(input),
+export function clearOnboardingCache(queryClient: QueryClient) {
+  queryClient.setQueryData(ONBOARDING_QUERY_KEY, null);
+  queryClient.removeQueries({ queryKey: ONBOARDING_QUERY_KEY });
+}
+
+export function invalidateOnboarding(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: ONBOARDING_QUERY_KEY });
+}
+
+/* ---------------------------------- */
+/* MUTATION HOOKS                     */
+/* ---------------------------------- */
+
+export function useStartOnboardingMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: startOnboarding,
+    onSuccess: async () => {
+      await invalidateOnboarding(queryClient);
+    },
   });
 }
 
-export async function getDetailOptions(institutionType: string) {
-  const params = new URLSearchParams({ institutionType });
+export function useSavePersonalProfileMutation() {
+  const queryClient = useQueryClient();
 
-  return apiFetch<DetailOptionsResponse>(
-    `/onboarding/build/detail-options?${params.toString()}`
-  );
-}
-
-export async function saveBuildDetails(input: {
-  learningModes: string[];
-  genderAdmissionPolicy?: string;
-  ownership?: string;
-  levelType?: string;
-}) {
-  return apiFetch<GenericStepResponse>("/onboarding/build/details", {
-    method: "POST",
-    body: JSON.stringify(input),
+  return useMutation({
+    mutationFn: savePersonalProfile,
+    onSuccess: async () => {
+      await invalidateOnboarding(queryClient);
+    },
   });
 }
 
-export async function getBuildReview() {
-  return apiFetch<BuildReviewResponse>("/onboarding/build/review");
-}
+export function useCreateInstitutionOnboardingMutation() {
+  const queryClient = useQueryClient();
 
-export async function completeBuildInstitution() {
-  return apiFetch<CompleteBuildInstitutionResponse>(
-    "/onboarding/build/complete",
-    {
-      method: "POST",
-    }
-  );
-}
-
-/* ---------------- PERSONAL ACCOUNT ---------------- */
-
-export async function savePersonalIdentity(input: {
-  skuullyId: string;
-  fullName: string;
-  accountIntent: AccountIntent;
-  headline?: string;
-  dateOfBirth?: string;
-}) {
-  return apiFetch<GenericStepResponse>("/onboarding/personal/identity", {
-    method: "POST",
-    body: JSON.stringify({
-      skuullyId: input.skuullyId,
-      fullName: input.fullName,
-      accountIntent: mapAccountIntentToApi(input.accountIntent),
-      headline: input.headline,
-      dateOfBirth: input.dateOfBirth,
-    }),
+  return useMutation({
+    mutationFn: createInstitutionOnboarding,
+    onSuccess: async () => {
+      await invalidateOnboarding(queryClient);
+    },
   });
 }
 
-export async function completePersonalAccount() {
-  return apiFetch<CompletePersonalAccountResponse>(
-    "/onboarding/personal/complete",
-    {
-      method: "POST",
-    }
-  );
-}
+export function useRequestInstitutionJoinMutation() {
+  const queryClient = useQueryClient();
 
-/* ---------------- SHARED SECURITY STEP ---------------- */
-
-export async function sendPhoneCode(input: {
-  countryCode: string;
-  dialCode: string;
-  nationalNumber: string;
-  e164: string;
-}) {
-  return apiFetch<SendPhoneCodeResponse>("/onboarding/security/send-phone-code", {
-    method: "POST",
-    body: JSON.stringify(input),
+  return useMutation({
+    mutationFn: requestInstitutionJoin,
+    onSuccess: async () => {
+      await invalidateOnboarding(queryClient);
+    },
   });
 }
 
-export async function verifyPhoneCode(input: {
-  e164: string;
-  code: string;
-}) {
-  return apiFetch<VerifyPhoneCodeResponse>(
-    "/onboarding/security/verify-phone-code",
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    }
-  );
-}
+/* ---------------------------------- */
+/* GEO QUERY HOOKS                    */
+/* ---------------------------------- */
 
-export async function skipPhoneStep() {
-  return apiFetch<{ message: string }>("/onboarding/security/skip", {
-    method: "POST",
+export function useCountriesQuery(search?: string) {
+  return useQuery({
+    queryKey: ["geo", "countries", search ?? ""],
+    queryFn: () => getCountries(search),
+    staleTime: 30 * 60 * 1000,
+    retry: false,
   });
 }
 
-/* ---------------- HELPERS ---------------- */
+export function usePhoneCountriesQuery(search?: string) {
+  return useQuery({
+    queryKey: ["geo", "phone-countries", search ?? ""],
+    queryFn: () => getPhoneCountries(search),
+    staleTime: 30 * 60 * 1000,
+    retry: false,
+  });
+}
 
-export {
-  mapRouteToApi,
-  mapInstitutionTypeToApi,
-  mapAccountIntentToApi,
-};
+export function useCountrySubdivisionsQuery(
+  countryCode?: string,
+  search?: string
+) {
+  return useQuery({
+    queryKey: ["geo", "subdivisions", countryCode ?? "", search ?? ""],
+    queryFn: () => {
+      if (!countryCode) {
+        throw new Error("countryCode is required");
+      }
+
+      return getCountrySubdivisions(countryCode, search);
+    },
+    enabled: !!countryCode,
+    staleTime: 30 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function useCountryCitiesQuery(
+  countryCode?: string,
+  input?: {
+    subdivisionCode?: string;
+    search?: string;
+  }
+) {
+  return useQuery({
+    queryKey: [
+      "geo",
+      "cities",
+      countryCode ?? "",
+      input?.subdivisionCode ?? "",
+      input?.search ?? "",
+    ],
+    queryFn: () => {
+      if (!countryCode) {
+        throw new Error("countryCode is required");
+      }
+
+      return getCountryCities(countryCode, input);
+    },
+    enabled: !!countryCode,
+    staleTime: 30 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function useCountryTimezonesQuery(countryCode?: string) {
+  return useQuery({
+    queryKey: ["geo", "timezones", countryCode ?? ""],
+    queryFn: () => {
+      if (!countryCode) {
+        throw new Error("countryCode is required");
+      }
+
+      return getCountryTimezones(countryCode);
+    },
+    enabled: !!countryCode,
+    staleTime: 30 * 60 * 1000,
+    retry: false,
+  });
+}

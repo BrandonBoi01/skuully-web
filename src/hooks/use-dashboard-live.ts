@@ -4,32 +4,27 @@ import { useEffect } from "react";
 import { io, Socket } from "socket.io-client";
 
 type UseDashboardLiveArgs = {
-  schoolId?: string | null;
-  programId?: string | null;
+  institutionId?: string | null;
   onRefresh: () => void;
 };
 
 export function useDashboardLive({
-  schoolId,
-  programId,
+  institutionId,
   onRefresh,
 }: UseDashboardLiveArgs) {
   useEffect(() => {
-    if (!schoolId && !programId) return;
+    if (!institutionId) return;
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
     const socket: Socket = io(`${baseUrl}/dashboard`, {
       transports: ["websocket"],
-      auth: token ? { token } : undefined,
+      withCredentials: true,
     });
 
     socket.on("connect", () => {
       socket.emit("dashboard:join", {
-        schoolId: schoolId ?? undefined,
-        programId: programId ?? undefined,
+        institutionId,
       });
     });
 
@@ -45,5 +40,5 @@ export function useDashboardLive({
       socket.off("dashboard:control-center:refresh", onRefresh);
       socket.disconnect();
     };
-  }, [schoolId, programId, onRefresh]);
+  }, [institutionId, onRefresh]);
 }
